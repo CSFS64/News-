@@ -280,7 +280,7 @@ var Render = {
       '<div class="card-actions">'+
       '<button class="act-btn'+(liked?' is-liked':'')+'" data-action="like" data-id="'+a.id+'">♥ <span>'+a.likes+'</span></button>'+
       '<button class="act-btn'+(saved?' is-saved':'')+'" data-action="save" data-id="'+a.id+'">◈ <span>'+(a.saves||0)+'</span></button>'+
-      '<button class="act-btn" data-action="comment" data-id="'+a.id+'">💬 '+(a.comments&&a.comments.length?a.comments.length:0)+'</button>'+
+      '<button class="act-btn" data-action="comment" data-id="'+a.id+'">💬 '+(a.commentsCount||0)+'</button>'+
       '<button class="act-btn act-btn-read" data-action="open" data-id="'+a.id+'">阅读 →</button>'+
       '</div></div></div></div>';
   }
@@ -412,7 +412,39 @@ var Article = {
 
   _renderCommentTree: function (comments, articleId) {
     if (!comments||!comments.length) return '<div class="no-comments">// NO TRANSMISSIONS — 暂无评论</div>';
-    return comments.map(function(c){ return Article._renderComment(c, articleId, 0); }).join('');
+
+    var SHOW_DEFAULT = 3;
+    var total = comments.length;
+    var visible = comments.slice(0, SHOW_DEFAULT);
+    var hidden  = comments.slice(SHOW_DEFAULT);
+
+    var html = visible.map(function(c){ return Article._renderComment(c, articleId, 0); }).join('');
+
+    if (hidden.length > 0) {
+      html += '<div id="cmt-collapsed-'+articleId+'" class="cmt-collapsed">'+
+        hidden.map(function(c){ return Article._renderComment(c, articleId, 0); }).join('')+
+        '</div>';
+      html += '<button class="cmt-show-more" onclick="Article.toggleComments(\''+articleId+'\',this)">'+
+        '▼ 展开更多评论（'+hidden.length+'条）</button>';
+    }
+
+    return html;
+  },
+
+  toggleComments: function (articleId, btn) {
+    var el = document.getElementById('cmt-collapsed-'+articleId);
+    if (!el) return;
+    var isHidden = el.style.display === 'none' || el.style.display === '';
+    if (isHidden) {
+      el.style.display = 'block';
+      btn.textContent = '▲ 收起评论';
+    } else {
+      el.style.display = 'none';
+      var count = el.querySelectorAll('.comment-item').length;
+      // only count top-level
+      var topLevel = Array.from(el.querySelectorAll('.comment-item')).filter(function(e){ return e.style.marginLeft==='0px'||!e.style.marginLeft; }).length;
+      btn.textContent = '▼ 展开更多评论（'+count+'条）';
+    }
   },
 
   _renderComment: function (c, articleId, depth) {
@@ -739,8 +771,15 @@ var Auth = {
       App.refresh();
       Toast.show('欢迎加入，'+r.user.username+(r.user.isAdmin?'（管理员）':'')+' ✓');
     }).catch(function(e){
-      if(e.code==='EMAIL_EXISTS') err.hidden=false;
-      else Toast.show('注册失败',true);
+      if (e.code==='EMAIL_EXISTS') {
+        err.textContent = '⚠ 该邮箱已被注册';
+        err.hidden = false;
+      } else if (e.code==='USERNAME_EXISTS') {
+        err.textContent = '⚠ 该用户名已被使用';
+        err.hidden = false;
+      } else {
+        Toast.show('注册失败，请稍后重试', true);
+      }
     });
   },
 
