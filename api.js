@@ -56,8 +56,8 @@ var API = (function () {
    * Change API_MODE to 'remote' and set API_BASE_URL to enable
    * a real backend. JWT token is stored in localStorage.
    * ──────────────────────────────────────────────────────────── */
-  var API_MODE     = 'remote';           // 'local' | 'remote'  ← change to 'remote' when deploying
-  var API_BASE_URL = 'https://frontline-backend.20060303jjc.workers.dev'; // ← your Worker URL
+  var API_MODE     = 'local';           // 'local' | 'remote'  ← change to 'remote' when deploying
+  var API_BASE_URL = 'https://your-worker.your-subdomain.workers.dev'; // ← your Worker URL
 
   // Token key in localStorage
   var TOKEN_KEY = 'fl_token';
@@ -396,65 +396,41 @@ var API = (function () {
       var params = [];
       if (opts && opts.tab && opts.tab !== '全部') params.push('tab=' + encodeURIComponent(opts.tab));
       if (opts && opts.search) params.push('search=' + encodeURIComponent(opts.search));
+      if (opts && opts.feed)   params.push('feed=' + encodeURIComponent(opts.feed));
       return http('GET', '/articles' + (params.length ? '?' + params.join('&') : ''));
     },
-
-    getArticle: function (id) {
-      return http('GET', '/articles/' + id);
+    getArticle:     function (id)   { return http('GET', '/articles/' + id); },
+    publishArticle: function (data) { return http('POST', '/articles', data); },
+    deleteArticle:  function (id)   { return http('DELETE', '/articles/' + id); },
+    toggleLike:     function (aid)  { return http('POST', '/articles/' + aid + '/like'); },
+    toggleSave:     function (aid)  { return http('POST', '/articles/' + aid + '/save'); },
+    getUserLikes:   function ()     { return http('GET', '/user/me').then(function(u){ return u.likes||[]; }); },
+    getUserSaves:   function ()     { return http('GET', '/user/saved').then(function(r){ return r.ids||[]; }); },
+    postComment: function (articleId, _uid, _uname, text, parentId) {
+      return http('POST', '/articles/' + articleId + '/comments', { text: text, parentId: parentId||null });
     },
-
-    publishArticle: function (data) {
-      return http('POST', '/articles', data);
+    toggleCommentLike: function (articleId, commentId) {
+      return http('POST', '/articles/' + articleId + '/comments/' + commentId + '/like');
     },
+    getTabs:   function ()     { return http('GET', '/tabs'); },
+    addTab:    function (name) { return http('POST', '/tabs', { name: name }); },
+    deleteTab: function (name) { return http('DELETE', '/tabs/' + encodeURIComponent(name)); },
+    getStats:  function ()     { return http('GET', '/stats'); },
+    recordView:     function (id) { return http('POST', '/articles/'+id+'/view').catch(function(){}); },
+    getViewHistory: function ()   { return http('GET', '/user/views').catch(function(){ return []; }); },
 
-    deleteArticle: function (id) {
-      return http('DELETE', '/articles/' + id);
-    },
+    /* Social */
+    getProfile:        function (uid)  { return http('GET', '/profile/' + uid); },
+    getProfileArticles:function (uid)  { return http('GET', '/profile/' + uid + '/articles'); },
+    getProfileComments:function (uid)  { return http('GET', '/profile/' + uid + '/comments'); },
+    toggleFollow:      function (uid)  { return http('POST', '/follows/' + uid); },
+    getFollowStats:    function (uid)  { return http('GET', '/follows/' + uid + '/stats'); },
 
-    toggleLike: function (articleId) {
-      return http('POST', '/articles/' + articleId + '/like');
-    },
-
-    toggleSave: function (articleId) {
-      return http('POST', '/articles/' + articleId + '/save');
-    },
-
-    getUserLikes: function () {
-      return http('GET', '/user/me').then(function(u){ return u.likes || []; });
-    },
-
-    getUserSaves: function () {
-      return http('GET', '/user/saved').then(function(r){ return r.ids || []; });
-    },
-
-    postComment: function (articleId, userId, username, text) {
-      return http('POST', '/articles/' + articleId + '/comments', { text: text });
-    },
-
-    getTabs: function () {
-      return http('GET', '/tabs');
-    },
-
-    addTab: function (name) {
-      return http('POST', '/tabs', { name: name });
-    },
-
-    deleteTab: function (name) {
-      return http('DELETE', '/tabs/' + encodeURIComponent(name));
-    },
-
-    getStats: function () {
-      return http('GET', '/stats');
-    },
-
-    /* View tracking — best-effort, silent fail */
-    recordView: function (articleId) {
-      return http('POST', '/articles/' + articleId + '/view').catch(function(){});
-    },
-
-    getViewHistory: function () {
-      return http('GET', '/user/views').catch(function(){ return []; });
-    }
+    /* Notifications */
+    getNotifications:    function ()   { return http('GET', '/notifications'); },
+    getUnreadCount:      function ()   { return http('GET', '/notifications/unread-count'); },
+    markAllRead:         function ()   { return http('POST', '/notifications/read-all'); },
+    markRead:            function (id) { return http('POST', '/notifications/' + id + '/read'); },
   };
 
   /* ── Utility: strip password from user object ── */
@@ -469,7 +445,6 @@ var API = (function () {
      PUBLIC API  — the only surface app.js ever touches
      ══════════════════════════════════════════════════════════ */
   return {
-    /* Returns current mode for debug purposes */
     mode: function () { return API_MODE; },
 
     /* Auth */
@@ -479,17 +454,18 @@ var API = (function () {
     getSession: function ()        { return backend.getSession(); },
 
     /* Articles */
-    getArticles:    function (opts)       { return backend.getArticles(opts); },
-    getArticle:     function (id)         { return backend.getArticle(id); },
-    publishArticle: function (data)       { return backend.publishArticle(data); },
-    deleteArticle:  function (id)         { return backend.deleteArticle(id); },
+    getArticles:    function (opts) { return backend.getArticles(opts); },
+    getArticle:     function (id)   { return backend.getArticle(id); },
+    publishArticle: function (data) { return backend.publishArticle(data); },
+    deleteArticle:  function (id)   { return backend.deleteArticle(id); },
 
     /* Interactions */
-    toggleLike:   function (artId, uid) { return backend.toggleLike(artId, uid); },
-    toggleSave:   function (artId, uid) { return backend.toggleSave(artId, uid); },
-    getUserLikes: function (uid)        { return backend.getUserLikes(uid); },
-    getUserSaves: function (uid)        { return backend.getUserSaves(uid); },
-    postComment:  function (artId, uid, uname, text) { return backend.postComment(artId, uid, uname, text); },
+    toggleLike:        function (aid, uid)               { return backend.toggleLike(aid, uid); },
+    toggleSave:        function (aid, uid)               { return backend.toggleSave(aid, uid); },
+    getUserLikes:      function (uid)                    { return backend.getUserLikes(uid); },
+    getUserSaves:      function (uid)                    { return backend.getUserSaves(uid); },
+    postComment:       function (aid, uid, uname, text, parentId) { return backend.postComment(aid, uid, uname, text, parentId); },
+    toggleCommentLike: function (aid, cid)               { return backend.toggleCommentLike(aid, cid); },
 
     /* Tabs */
     getTabs:   function ()     { return backend.getTabs(); },
@@ -499,9 +475,22 @@ var API = (function () {
     /* Stats */
     getStats: function () { return backend.getStats(); },
 
-    /* View history (recommendation engine data) */
+    /* Views */
     recordView:     function (id) { return backend.recordView(id); },
-    getViewHistory: function ()   { return backend.getViewHistory(); }
+    getViewHistory: function ()   { return backend.getViewHistory(); },
+
+    /* Social */
+    getProfile:         function (uid) { return backend.getProfile(uid); },
+    getProfileArticles: function (uid) { return backend.getProfileArticles(uid); },
+    getProfileComments: function (uid) { return backend.getProfileComments(uid); },
+    toggleFollow:       function (uid) { return backend.toggleFollow(uid); },
+    getFollowStats:     function (uid) { return backend.getFollowStats(uid); },
+
+    /* Notifications */
+    getNotifications: function ()   { return backend.getNotifications(); },
+    getUnreadCount:   function ()   { return backend.getUnreadCount(); },
+    markAllRead:      function ()   { return backend.markAllRead(); },
+    markRead:         function (id) { return backend.markRead(id); },
   };
 
 })();
