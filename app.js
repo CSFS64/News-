@@ -803,3 +803,6 @@ function formatDate(iso) {
   var pad = function(n){ return n<10?'0'+n:n; };
   return d.getUTCFullYear() + '-' + pad(d.getUTCMonth()+1) + '-' + pad(d.getUTCDate());
 }
+
+// 全局函数桥接，供 HTML 内联事件调用
+function switchTab(tab) { App.switchTab(tab); }
