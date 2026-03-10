@@ -1,337 +1,274 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN">
+<!DOCTYPE html>
+<html lang="zh-CN">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>新闻汇 NewsBoard - 每天精选全球资讯</title>
-  <link rel="stylesheet" type="text/css" href="style.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Tahoma&display=swap" rel="stylesheet" />
+  <meta name="description" content="战线快报 — 全球冲突与战事实时跟踪" />
+  <title>战线快报 · FRONTLINE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-<!-- ═══ MARQUEE TICKER ═══ -->
-<div id="ticker-bar">
-  <span class="ticker-label">【快讯】</span>
-  <marquee behavior="scroll" direction="left" scrollamount="3" id="ticker-text">
-    ★ 欢迎来到新闻汇 NewsBoard — 每天精选全球优质新闻 ★ &nbsp;&nbsp;&nbsp; 注册成为会员，享受个性化推荐、评论互动、收藏功能 ★ &nbsp;&nbsp;&nbsp; 管理员每日更新最新资讯，敬请关注 ★
-  </marquee>
-</div>
+  <!-- GRAIN OVERLAY -->
+  <div id="grain"></div>
 
-<!-- ═══ HEADER ═══ -->
-<div id="header-wrap">
-  <div id="header-inner">
-    <div id="logo-area">
-      <div id="logo">
-        <span class="logo-icon">&#9733;</span>
-        <span class="logo-main">新闻汇</span>
-        <span class="logo-en">NewsBoard</span>
-      </div>
-      <div id="logo-slogan">每天精选 · 全球资讯 · 一网打尽</div>
+  <!-- ══ ALERT TICKER ══ -->
+  <div id="alert-bar">
+    <span class="alert-pill">⬤ LIVE</span>
+    <div id="ticker-track">
+      <span id="ticker-content"></span>
     </div>
+    <span id="utc-clock"></span>
+  </div>
 
-    <div id="header-right">
-      <div id="search-box-header">
-        <input type="text" id="search-input" placeholder="搜索新闻..." onkeyup="handleSearch()" />
-        <button onclick="handleSearch()" class="btn-search">搜索</button>
+  <!-- ══ MASTHEAD ══ -->
+  <header id="masthead">
+    <div id="masthead-inner">
+      <div id="brand" onclick="switchTab('全部')" role="button" tabindex="0">
+        <div id="brand-icon">✛</div>
+        <div id="brand-text">
+          <div id="brand-main">战线快报</div>
+          <div id="brand-sub">FRONTLINE · DISPATCH</div>
+        </div>
       </div>
-      <div id="user-bar">
-        <span id="greeting-text">您好，游客！</span>
-        <span id="auth-links">
-          <a href="#" class="header-link" onclick="openModal('login-modal');return false;">登录</a>
-          &nbsp;|&nbsp;
-          <a href="#" class="header-link" onclick="openModal('signup-modal');return false;">免费注册</a>
-        </span>
-        <span id="user-links" style="display:none">
-          <span id="username-display"></span>
-          <a href="#" class="header-link" onclick="openModal('saved-modal');return false;">我的收藏</a>
-          &nbsp;|&nbsp;
-          <a href="#" id="admin-link" class="header-link admin-link" style="display:none" onclick="openAdmin();return false;">管理后台</a>
-          <a href="#" class="header-link" onclick="handleLogout();return false;">退出</a>
-        </span>
+
+      <nav id="tabs-row" role="navigation" aria-label="分类导航">
+        <!-- filled by JS -->
+      </nav>
+
+      <div id="header-controls">
+        <div id="search-wrap">
+          <input type="search" id="search-input" placeholder="搜索战报…" autocomplete="off" />
+          <button id="search-btn" aria-label="搜索">⌕</button>
+        </div>
+        <div id="auth-area">
+          <!-- filled by JS -->
+        </div>
       </div>
     </div>
-  </div>
-</div>
+  </header>
 
-<!-- ═══ NAVIGATION TABS ═══ -->
-<div id="nav-wrap">
-  <div id="nav-inner">
-    <ul id="main-nav" role="navigation">
-      <!-- filled by JS -->
-    </ul>
-    <div id="nav-date" id="navdate"></div>
-  </div>
-</div>
+  <!-- ══ MAIN LAYOUT ══ -->
+  <main id="layout">
 
-<!-- ═══ MAIN CONTENT ═══ -->
-<div id="page-wrap">
-  <div id="page-inner">
-
-    <!-- LEFT MAIN -->
-    <div id="main-col">
-
-      <!-- BREAKING NEWS BANNER (shown when featured) -->
-      <div id="breaking-banner" style="display:none">
-        <span class="breaking-label">&#9888; 置顶</span>
-        <span id="breaking-text"></span>
+    <!-- LEFT: FEED -->
+    <section id="feed-col">
+      <div id="feed-header">
+        <span id="feed-label">// 最新战报</span>
+        <span id="feed-count"></span>
       </div>
-
-      <!-- RECOMMEND NOTICE -->
-      <div id="recommend-notice" style="display:none">
-        <img src="data:image/gif;base64,R0lGODlhEAAQAMQAAORHHOVSKudfOulrSOp3WOyDZu6QdvCchPGolfO0o/XBs/fNwfjZ0frl3/zy7////wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAkAABAALAAAAAAQABAAAAVVICSOZGlCQAosJ6mu7fiyZeKqNKToQGDsM8hBADgUXoGAiqhSvp5QAnQKGIgUhwFUYLCVDFCrKUE1lBavAViFIDlTImbKC5Gm2hB0SlBCBMQiB0UjIQA7" alt="tip" style="vertical-align:middle" />
-        <strong>为你推荐：</strong> <span id="recommend-text">根据你的浏览偏好为你推荐内容</span>
+      <div id="rec-banner" hidden>
+        <span class="rec-icon">◈</span>
+        <span id="rec-text"></span>
       </div>
-
-      <!-- NEWS LIST -->
-      <div id="news-list">
+      <div id="news-feed">
         <!-- filled by JS -->
       </div>
+    </section>
 
-      <div id="load-more-wrap">
-        <button class="btn-loadmore" onclick="showToast('没有更多内容了~')">查看更多新闻 &raquo;</button>
-      </div>
-    </div>
+    <!-- RIGHT: INTEL PANEL -->
+    <aside id="intel-col">
 
-    <!-- RIGHT SIDEBAR -->
-    <div id="side-col">
-
-      <!-- HOT TODAY -->
-      <div class="side-widget">
-        <div class="widget-title">
-          <span class="widget-icon">&#128293;</span> 今日热门
-        </div>
-        <div class="widget-body" id="hot-list">
-        </div>
+      <div class="intel-widget" id="widget-hot">
+        <div class="widget-head"><span class="wh-icon">▲</span> 热度排行</div>
+        <div class="widget-body" id="hot-feed"></div>
       </div>
 
-      <!-- CATEGORIES -->
-      <div class="side-widget">
-        <div class="widget-title">
-          <span class="widget-icon">&#128196;</span> 新闻分类
-        </div>
-        <div class="widget-body" id="cat-list">
-        </div>
+      <div class="intel-widget" id="widget-cats">
+        <div class="widget-head"><span class="wh-icon">▤</span> 战区分类</div>
+        <div class="widget-body" id="cats-body"></div>
       </div>
 
-      <!-- STATS BOX -->
-      <div class="side-widget stats-widget">
-        <div class="widget-title">
-          <span class="widget-icon">&#128202;</span> 站点统计
-        </div>
+      <div class="intel-widget" id="widget-stats">
+        <div class="widget-head"><span class="wh-icon">◉</span> 实时数据</div>
         <div class="widget-body">
-          <table class="stats-table">
-            <tr><td>今日文章：</td><td id="stat-today"><strong>0</strong></td></tr>
-            <tr><td>文章总数：</td><td id="stat-total"><strong>0</strong></td></tr>
-            <tr><td>注册用户：</td><td id="stat-users"><strong>0</strong></td></tr>
-            <tr><td>总评论数：</td><td id="stat-comments"><strong>0</strong></td></tr>
-          </table>
-        </div>
-      </div>
-
-      <!-- AD BOX (retro feel) -->
-      <div class="side-widget ad-widget">
-        <div class="widget-title">友情链接</div>
-        <div class="widget-body">
-          <div class="friend-links">
-            <a href="#" class="friend-link">新华网</a>
-            <a href="#" class="friend-link">人民网</a>
-            <a href="#" class="friend-link">BBC中文</a>
-            <a href="#" class="friend-link">Reuters</a>
-            <a href="#" class="friend-link">FT中文网</a>
-            <a href="#" class="friend-link">36氪</a>
+          <div class="stat-grid">
+            <div class="stat-cell"><span class="stat-val" id="s-articles">—</span><span class="stat-lbl">文章总数</span></div>
+            <div class="stat-cell"><span class="stat-val" id="s-today">—</span><span class="stat-lbl">今日更新</span></div>
+            <div class="stat-cell"><span class="stat-val" id="s-users">—</span><span class="stat-lbl">注册用户</span></div>
+            <div class="stat-cell"><span class="stat-val" id="s-comments">—</span><span class="stat-lbl">评论总数</span></div>
           </div>
         </div>
       </div>
 
+      <div class="intel-widget" id="widget-saved" hidden>
+        <div class="widget-head"><span class="wh-icon">◈</span> 我的存档</div>
+        <div class="widget-body" id="saved-feed"></div>
+      </div>
+
+    </aside>
+  </main>
+
+  <!-- ══ FOOTER ══ -->
+  <footer id="site-footer">
+    <div id="footer-inner">
+      <span id="footer-brand">战线快报 FRONTLINE DISPATCH</span>
+      <span id="footer-note">内容来自公开媒体，仅供参考。本站不代表任何立场。</span>
+      <span id="footer-tech">Powered by Frontline v1.0</span>
     </div>
-    <div class="clear"></div>
-  </div>
-</div>
+  </footer>
 
-<!-- ═══ FOOTER ═══ -->
-<div id="footer">
-  <div id="footer-inner">
-    <div id="footer-links">
-      <a href="#">关于我们</a> | <a href="#">联系方式</a> | <a href="#">免责声明</a> | <a href="#">RSS订阅</a> | <a href="#">意见反馈</a>
+  <!-- ══════════════════════════════════ -->
+  <!--              MODALS               -->
+  <!-- ══════════════════════════════════ -->
+
+  <!-- BACKDROP -->
+  <div id="backdrop" hidden></div>
+
+  <!-- LOGIN -->
+  <dialog id="dlg-login" class="dialog">
+    <div class="dlg-head">
+      <span class="dlg-title">// 登录系统</span>
+      <button class="dlg-close" data-close="dlg-login">✕</button>
     </div>
-    <div id="copyright">
-      &copy; 2008-2012 新闻汇 NewsBoard &nbsp;·&nbsp; 版权所有 &nbsp;·&nbsp;
-      <span style="color:#aaa">Powered by NewsBoard v2.3.1</span>
+    <div class="dlg-body">
+      <div class="field-group">
+        <label class="field-label">邮箱地址</label>
+        <input type="email" id="login-email" class="field-input" placeholder="operator@example.com" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">密码</label>
+        <input type="password" id="login-password" class="field-input" placeholder="••••••••" />
+      </div>
+      <div class="field-error" id="login-err" hidden>⚠ 邮箱或密码错误</div>
+      <button class="btn-primary full" id="btn-do-login">确认登录</button>
+      <div class="dlg-switch">没有账号？<a href="#" data-open="dlg-signup" data-close-from="dlg-login">立即注册 →</a></div>
     </div>
-    <div id="footer-badges">
-      <span class="badge">XHTML 1.0</span>
-      <span class="badge">CSS 2.1</span>
-      <span class="badge">&#9733; 精选内容</span>
+  </dialog>
+
+  <!-- SIGNUP -->
+  <dialog id="dlg-signup" class="dialog">
+    <div class="dlg-head">
+      <span class="dlg-title">// 注册账号</span>
+      <button class="dlg-close" data-close="dlg-signup">✕</button>
     </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════ -->
-<!--              MODALS                -->
-<!-- ═══════════════════════════════════ -->
-
-<!-- OVERLAY -->
-<div id="modal-overlay" onclick="closeAllModals()"></div>
-
-<!-- LOGIN MODAL -->
-<div id="login-modal" class="modal-box">
-  <div class="modal-titlebar">
-    <span>会员登录</span>
-    <a href="#" class="modal-close-btn" onclick="closeAllModals();return false;">&#10005;</a>
-  </div>
-  <div class="modal-content">
-    <table class="form-table">
-      <tr>
-        <td class="form-label">邮&nbsp;&nbsp;&nbsp;箱：</td>
-        <td><input type="text" id="login-email" class="form-field" placeholder="请输入注册邮箱" /></td>
-      </tr>
-      <tr>
-        <td class="form-label">密&nbsp;&nbsp;&nbsp;码：</td>
-        <td><input type="password" id="login-password" class="form-field" placeholder="请输入密码" /></td>
-      </tr>
-      <tr>
-        <td></td>
-        <td><div id="login-error" class="form-error" style="display:none">&#10005; 邮箱或密码错误，请重试</div></td>
-      </tr>
-    </table>
-    <div class="modal-btn-row">
-      <button class="btn-submit" onclick="handleLogin()">登&nbsp;录</button>
-      <span class="form-tip">还没有账号？<a href="#" onclick="switchModal('login-modal','signup-modal');return false;">立即注册 &raquo;</a></span>
+    <div class="dlg-body">
+      <div class="field-group">
+        <label class="field-label">用户名</label>
+        <input type="text" id="signup-username" class="field-input" placeholder="战地代号" maxlength="20" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">邮箱地址</label>
+        <input type="email" id="signup-email" class="field-input" placeholder="operator@example.com" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">密码 <span class="field-hint">（至少6位）</span></label>
+        <input type="password" id="signup-password" class="field-input" placeholder="••••••••" />
+      </div>
+      <div class="field-error" id="signup-err" hidden>⚠ 该邮箱已被注册</div>
+      <button class="btn-primary full" id="btn-do-signup">创建账号</button>
+      <div class="dlg-switch">已有账号？<a href="#" data-open="dlg-login" data-close-from="dlg-signup">直接登录 →</a></div>
     </div>
-  </div>
-</div>
+  </dialog>
 
-<!-- SIGNUP MODAL -->
-<div id="signup-modal" class="modal-box">
-  <div class="modal-titlebar">
-    <span>免费注册会员</span>
-    <a href="#" class="modal-close-btn" onclick="closeAllModals();return false;">&#10005;</a>
-  </div>
-  <div class="modal-content">
-    <div class="reg-tip">&#9733; 注册即可享受：评论、点赞、收藏、个性化推荐等功能！</div>
-    <table class="form-table">
-      <tr>
-        <td class="form-label">用户名：</td>
-        <td><input type="text" id="signup-username" class="form-field" placeholder="2-12个字符" /></td>
-      </tr>
-      <tr>
-        <td class="form-label">邮&nbsp;&nbsp;&nbsp;箱：</td>
-        <td><input type="text" id="signup-email" class="form-field" placeholder="用于登录" /></td>
-      </tr>
-      <tr>
-        <td class="form-label">密&nbsp;&nbsp;&nbsp;码：</td>
-        <td><input type="password" id="signup-password" class="form-field" placeholder="至少6位" /></td>
-      </tr>
-      <tr>
-        <td></td>
-        <td><div id="signup-error" class="form-error" style="display:none">&#10005; 该邮箱已被注册</div></td>
-      </tr>
-    </table>
-    <div class="modal-btn-row">
-      <button class="btn-submit" onclick="handleSignup()">立即注册</button>
-      <span class="form-tip">已有账号？<a href="#" onclick="switchModal('signup-modal','login-modal');return false;">直接登录 &raquo;</a></span>
+  <!-- ARTICLE -->
+  <dialog id="dlg-article" class="dialog dialog-wide">
+    <div class="dlg-head">
+      <span class="dlg-title" id="art-dlg-label">// 战报详情</span>
+      <button class="dlg-close" data-close="dlg-article">✕</button>
     </div>
-  </div>
-</div>
+    <div class="dlg-body" id="art-dlg-body"></div>
+  </dialog>
 
-<!-- ARTICLE MODAL -->
-<div id="article-modal" class="modal-box article-modal-box">
-  <div class="modal-titlebar">
-    <span id="article-modal-title">文章详情</span>
-    <a href="#" class="modal-close-btn" onclick="closeAllModals();return false;">&#10005;</a>
-  </div>
-  <div class="modal-content" id="article-modal-body">
-  </div>
-</div>
-
-<!-- SAVED MODAL -->
-<div id="saved-modal" class="modal-box">
-  <div class="modal-titlebar">
-    <span>&#9733; 我的收藏夹</span>
-    <a href="#" class="modal-close-btn" onclick="closeAllModals();return false;">&#10005;</a>
-  </div>
-  <div class="modal-content" id="saved-modal-body">
-  </div>
-</div>
-
-<!-- ADMIN MODAL -->
-<div id="admin-modal" class="modal-box admin-modal-box">
-  <div class="modal-titlebar">
-    <span>&#9998; 管理后台 - 新闻汇</span>
-    <a href="#" class="modal-close-btn" onclick="closeAllModals();return false;">&#10005;</a>
-  </div>
-  <div class="modal-content">
-    <div id="admin-tabs-nav">
-      <a href="#" class="admin-tab-link active" id="atab-publish" onclick="switchAdminTab('publish');return false;">&#43; 发布新闻</a>
-      <a href="#" class="admin-tab-link" id="atab-manage" onclick="switchAdminTab('manage');return false;">&#9998; 管理文章</a>
-      <a href="#" class="admin-tab-link" id="atab-cats" onclick="switchAdminTab('cats');return false;">&#9776; 管理分类</a>
+  <!-- USER PANEL -->
+  <dialog id="dlg-user" class="dialog">
+    <div class="dlg-head">
+      <span class="dlg-title">// 操作员面板</span>
+      <button class="dlg-close" data-close="dlg-user">✕</button>
     </div>
+    <div class="dlg-body">
+      <div id="user-panel-info"></div>
+      <hr class="dlg-divider" />
+      <button class="btn-ghost full" onclick="App.openSaved()">◈ 查看存档</button>
+      <button class="btn-danger full" id="btn-logout">⏻ 退出登录</button>
+    </div>
+  </dialog>
 
-    <!-- Publish -->
-    <div id="admin-publish">
-      <table class="form-table" style="width:100%">
-        <tr>
-          <td class="form-label">标&nbsp;&nbsp;&nbsp;题：</td>
-          <td><input type="text" id="pub-title" class="form-field wide" placeholder="新闻标题（必填）" /></td>
-        </tr>
-        <tr>
-          <td class="form-label">来&nbsp;&nbsp;&nbsp;源：</td>
-          <td><input type="text" id="pub-source" class="form-field wide" placeholder="媒体名称，如：新华社" /></td>
-        </tr>
-        <tr>
-          <td class="form-label">原文链接：</td>
-          <td><input type="text" id="pub-url" class="form-field wide" placeholder="https://..." /></td>
-        </tr>
-        <tr>
-          <td class="form-label">分&nbsp;&nbsp;&nbsp;类：</td>
-          <td><select id="pub-category" class="form-select"></select></td>
-        </tr>
-        <tr>
-          <td class="form-label">热度标签：</td>
-          <td>
-            <select id="pub-heat" class="form-select">
+  <!-- ADMIN PANEL -->
+  <dialog id="dlg-admin" class="dialog dialog-wide">
+    <div class="dlg-head">
+      <span class="dlg-title">// 指挥中枢 — 管理后台</span>
+      <button class="dlg-close" data-close="dlg-admin">✕</button>
+    </div>
+    <div class="dlg-body">
+      <div id="admin-tabs">
+        <button class="admin-tab active" data-tab="publish">＋ 发布战报</button>
+        <button class="admin-tab" data-tab="manage">≡ 管理文章</button>
+        <button class="admin-tab" data-tab="cats">▤ 管理分类</button>
+      </div>
+
+      <!-- Publish -->
+      <div id="atab-publish" class="atab-panel">
+        <div class="form-grid">
+          <div class="field-group span2">
+            <label class="field-label">标题 <span class="req">*</span></label>
+            <input type="text" id="pub-title" class="field-input" placeholder="战报标题" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">来源媒体 <span class="req">*</span></label>
+            <input type="text" id="pub-source" class="field-input" placeholder="Reuters / BBC / 新华社…" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">分类 <span class="req">*</span></label>
+            <select id="pub-category" class="field-select"></select>
+          </div>
+          <div class="field-group span2">
+            <label class="field-label">原文链接 <span class="req">*</span></label>
+            <input type="url" id="pub-url" class="field-input" placeholder="https://…" />
+          </div>
+          <div class="field-group span2">
+            <label class="field-label">摘要</label>
+            <textarea id="pub-desc" class="field-textarea" rows="3" placeholder="战况摘要…"></textarea>
+          </div>
+          <div class="field-group">
+            <label class="field-label">图标 Emoji</label>
+            <input type="text" id="pub-emoji" class="field-input" placeholder="🪖 💣 🗺 📡" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">警报级别</label>
+            <select id="pub-alert" class="field-select">
               <option value="">无</option>
-              <option value="【热门】">【热门】</option>
-              <option value="【突发】">【突发】</option>
-              <option value="【独家】">【独家】</option>
-              <option value="【精选】">【精选】</option>
+              <option value="BREAKING">⚡ BREAKING</option>
+              <option value="URGENT">🔴 URGENT</option>
+              <option value="EXCLUSIVE">◈ EXCLUSIVE</option>
+              <option value="ANALYSIS">◎ ANALYSIS</option>
             </select>
-          </td>
-        </tr>
-        <tr>
-          <td class="form-label">图&nbsp;标：</td>
-          <td><input type="text" id="pub-emoji" class="form-field" placeholder="Emoji，如：🌏 📈 ⚽" /></td>
-        </tr>
-        <tr>
-          <td class="form-label" style="vertical-align:top;padding-top:6px">摘&nbsp;&nbsp;&nbsp;要：</td>
-          <td><textarea id="pub-desc" class="form-textarea" rows="3" placeholder="简短描述这篇文章内容..."></textarea></td>
-        </tr>
-      </table>
-      <div class="modal-btn-row" style="margin-top:12px">
-        <button class="btn-submit" onclick="publishArticle()">发布文章</button>
-        <button class="btn-cancel" onclick="closeAllModals()">取消</button>
+          </div>
+          <div class="field-group span2">
+            <label class="field-label">
+              <input type="checkbox" id="pub-featured" style="margin-right:6px" />
+              设为置顶精选
+            </label>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-primary" id="btn-publish">发布战报</button>
+          <button class="btn-ghost" onclick="Dialog.close('dlg-admin')">取消</button>
+        </div>
+      </div>
+
+      <!-- Manage -->
+      <div id="atab-manage" class="atab-panel" hidden>
+        <div id="manage-list" class="manage-scroll"></div>
+      </div>
+
+      <!-- Cats -->
+      <div id="atab-cats" class="atab-panel" hidden>
+        <div class="field-row">
+          <input type="text" id="new-cat" class="field-input" placeholder="新分类名称" />
+          <button class="btn-primary" id="btn-add-cat">添加</button>
+        </div>
+        <div id="cats-manage-list" class="manage-scroll"></div>
       </div>
     </div>
+  </dialog>
 
-    <!-- Manage -->
-    <div id="admin-manage" style="display:none">
-      <div id="manage-list" class="manage-scroll"></div>
-    </div>
+  <!-- TOAST CONTAINER -->
+  <div id="toast-container"></div>
 
-    <!-- Categories -->
-    <div id="admin-cats" style="display:none">
-      <div style="margin-bottom:10px;display:flex;gap:8px">
-        <input type="text" id="new-cat-name" class="form-field" placeholder="新分类名称" style="flex:1" />
-        <button class="btn-submit" onclick="addCategory()" style="width:auto;padding:5px 16px">添加</button>
-      </div>
-      <div id="cats-manage-list" class="manage-scroll"></div>
-    </div>
-  </div>
-</div>
-
-<!-- TOAST -->
-<div id="toast-box"></div>
-
-<script src="app.js"></script>
+  <script src="api.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
