@@ -720,20 +720,29 @@ var Auth = {
         '🔔 <span id="notif-badge" hidden></span></button>'+
         '<button class="btn-sm btn-sm-ghost" id="btn-user-panel">'+u.username[0].toUpperCase()+'</button>';
 
-      document.getElementById('btn-publish-quick').addEventListener('click', function(){
-        u.isAdmin ? Admin.open() : Admin.openPublishOnly();
-      });
-      if (u.isAdmin) document.getElementById('btn-admin').addEventListener('click', Admin.open);
-      document.getElementById('btn-notif').addEventListener('click', Notifications.open);
-      document.getElementById('btn-user-panel').addEventListener('click', function(){
-        document.getElementById('user-panel-info').innerHTML =
-          '<strong>操作员：</strong>'+esc(u.username)+'<br>'+
-          '<strong>邮&emsp;箱：</strong>'+esc(u.email)+'<br>'+
-          '<strong>权&emsp;限：</strong>'+(u.isAdmin?'管理员':'普通用户')+'<br>'+
-          '<strong>注册于：</strong>'+formatDate(u.joinDate);
-        Dialog.open('dlg-user');
-      });
-      Notifications.start();
+      // Use setTimeout to ensure DOM is updated before binding events
+      setTimeout(function(){
+        var publishBtn = document.getElementById('btn-publish-quick');
+        if (publishBtn) publishBtn.addEventListener('click', function(){
+          u.isAdmin ? Admin.open() : Admin.openPublishOnly();
+        });
+        if (u.isAdmin) {
+          var adminBtnEl = document.getElementById('btn-admin');
+          if (adminBtnEl) adminBtnEl.addEventListener('click', Admin.open);
+        }
+        var notifBtn = document.getElementById('btn-notif');
+        if (notifBtn) notifBtn.addEventListener('click', Notifications.open);
+        var userBtn = document.getElementById('btn-user-panel');
+        if (userBtn) userBtn.addEventListener('click', function(){
+          document.getElementById('user-panel-info').innerHTML =
+            '<strong>操作员：</strong>'+esc(u.username)+'<br>'+
+            '<strong>邮&emsp;箱：</strong>'+esc(u.email)+'<br>'+
+            '<strong>权&emsp;限：</strong>'+(u.isAdmin?'管理员':'普通用户')+'<br>'+
+            '<strong>注册于：</strong>'+formatDate(u.joinDate);
+          Dialog.open('dlg-user');
+        });
+        Notifications.start();
+      }, 0);
     }
   },
 
