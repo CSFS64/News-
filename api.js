@@ -56,8 +56,8 @@ var API = (function () {
    * Change API_MODE to 'remote' and set API_BASE_URL to enable
    * a real backend. JWT token is stored in localStorage.
    * ──────────────────────────────────────────────────────────── */
-  var API_MODE     = 'remote';           // 'local' | 'remote'  ← change to 'remote' when deploying
-  var API_BASE_URL = 'https://frontline-backend.20060303jjc.workers.dev'; // ← your Worker URL
+  var API_MODE     = 'local';           // 'local' | 'remote'  ← change to 'remote' when deploying
+  var API_BASE_URL = 'https://your-worker.your-subdomain.workers.dev'; // ← your Worker URL
 
   // Token key in localStorage
   var TOKEN_KEY = 'fl_token';
@@ -412,6 +412,9 @@ var API = (function () {
     toggleCommentLike: function (articleId, commentId) {
       return http('POST', '/articles/' + articleId + '/comments/' + commentId + '/like');
     },
+    deleteComment: function (articleId, commentId) {
+      return http('DELETE', '/articles/' + articleId + '/comments/' + commentId);
+    },
     getTabs:   function ()     { return http('GET', '/tabs'); },
     addTab:    function (name) { return http('POST', '/tabs', { name: name }); },
     deleteTab: function (name) { return http('DELETE', '/tabs/' + encodeURIComponent(name)); },
@@ -466,6 +469,7 @@ var API = (function () {
     getUserSaves:      function (uid)                    { return backend.getUserSaves(uid); },
     postComment:       function (aid, uid, uname, text, parentId) { return backend.postComment(aid, uid, uname, text, parentId); },
     toggleCommentLike: function (aid, cid)               { return backend.toggleCommentLike(aid, cid); },
+    deleteComment:     function (aid, cid)               { return backend.deleteComment(aid, cid); },
 
     /* Tabs */
     getTabs:   function ()     { return backend.getTabs(); },
