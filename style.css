@@ -637,6 +637,7 @@ dialog::backdrop { background: transparent; }
 
 /* ── DIALOGS ── */
 .dialog {
+  display: none;
   position: fixed;
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
@@ -648,9 +649,11 @@ dialog::backdrop { background: transparent; }
   border-radius: var(--radius);
   box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(192,57,43,0.1);
   max-height: 90vh;
-  display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+.dialog.is-open {
+  display: flex;
 }
 .dialog-wide { width: 680px; }
 
