@@ -455,12 +455,24 @@ var Auth = {
       document.getElementById('btn-signup').addEventListener('click', function(){ Dialog.open('dlg-signup'); });
     } else {
       var u = State.currentUser;
+      // All logged-in users can publish; admins additionally get full admin panel
+      var publishBtn = '<button class="btn-sm btn-sm-ghost" id="btn-publish-quick">＋ 发布</button>';
       var adminBtn = u.isAdmin
         ? '<button class="btn-sm btn-sm-admin" id="btn-admin">管理后台</button>'
         : '';
       area.innerHTML =
+        publishBtn +
         adminBtn +
         '<button class="btn-sm btn-sm-ghost" id="btn-user-panel">' + u.username[0].toUpperCase() + '</button>';
+
+      document.getElementById('btn-publish-quick').addEventListener('click', function(){
+        // All users open the publish panel (admins get full admin modal, users get simple publish modal)
+        if (u.isAdmin) {
+          Admin.open();
+        } else {
+          Admin.openPublishOnly();
+        }
+      });
       if (u.isAdmin) {
         document.getElementById('btn-admin').addEventListener('click', Admin.open);
       }
@@ -542,6 +554,25 @@ var Admin = {
       Toast.show('权限不足', true); return;
     }
     Admin._refreshCatSelect();
+    Admin.switchTab('publish');
+    Dialog.open('dlg-admin');
+  },
+
+  // Non-admin users see a simplified publish dialog (reuses same modal, publish tab only)
+  openPublishOnly: function () {
+    if (!State.currentUser) { Toast.show('请先登录', true); return; }
+    Admin._refreshCatSelect();
+    // Show only publish tab, hide manage/cats tabs for non-admins
+    var u = State.currentUser;
+    document.querySelectorAll('.admin-tab').forEach(function(btn){
+      if (btn.dataset.tab !== 'publish') {
+        btn.style.display = u.isAdmin ? '' : 'none';
+      }
+    });
+    // Hide featured checkbox for non-admins (backend enforces this too)
+    var featRow = document.getElementById('pub-featured');
+    if (featRow) featRow.closest('.field-group').style.display = u.isAdmin ? '' : 'none';
+    // Hide BREAKING alert option for non-admins
     Admin.switchTab('publish');
     Dialog.open('dlg-admin');
   },
