@@ -1,0 +1,337 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>新闻汇 NewsBoard - 每天精选全球资讯</title>
+  <link rel="stylesheet" type="text/css" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Tahoma&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<!-- ═══ MARQUEE TICKER ═══ -->
+<div id="ticker-bar">
+  <span class="ticker-label">【快讯】</span>
+  <marquee behavior="scroll" direction="left" scrollamount="3" id="ticker-text">
+    ★ 欢迎来到新闻汇 NewsBoard — 每天精选全球优质新闻 ★ &nbsp;&nbsp;&nbsp; 注册成为会员，享受个性化推荐、评论互动、收藏功能 ★ &nbsp;&nbsp;&nbsp; 管理员每日更新最新资讯，敬请关注 ★
+  </marquee>
+</div>
+
+<!-- ═══ HEADER ═══ -->
+<div id="header-wrap">
+  <div id="header-inner">
+    <div id="logo-area">
+      <div id="logo">
+        <span class="logo-icon">&#9733;</span>
+        <span class="logo-main">新闻汇</span>
+        <span class="logo-en">NewsBoard</span>
+      </div>
+      <div id="logo-slogan">每天精选 · 全球资讯 · 一网打尽</div>
+    </div>
+
+    <div id="header-right">
+      <div id="search-box-header">
+        <input type="text" id="search-input" placeholder="搜索新闻..." onkeyup="handleSearch()" />
+        <button onclick="handleSearch()" class="btn-search">搜索</button>
+      </div>
+      <div id="user-bar">
+        <span id="greeting-text">您好，游客！</span>
+        <span id="auth-links">
+          <a href="#" class="header-link" onclick="openModal('login-modal');return false;">登录</a>
+          &nbsp;|&nbsp;
+          <a href="#" class="header-link" onclick="openModal('signup-modal');return false;">免费注册</a>
+        </span>
+        <span id="user-links" style="display:none">
+          <span id="username-display"></span>
+          <a href="#" class="header-link" onclick="openModal('saved-modal');return false;">我的收藏</a>
+          &nbsp;|&nbsp;
+          <a href="#" id="admin-link" class="header-link admin-link" style="display:none" onclick="openAdmin();return false;">管理后台</a>
+          <a href="#" class="header-link" onclick="handleLogout();return false;">退出</a>
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ NAVIGATION TABS ═══ -->
+<div id="nav-wrap">
+  <div id="nav-inner">
+    <ul id="main-nav" role="navigation">
+      <!-- filled by JS -->
+    </ul>
+    <div id="nav-date" id="navdate"></div>
+  </div>
+</div>
+
+<!-- ═══ MAIN CONTENT ═══ -->
+<div id="page-wrap">
+  <div id="page-inner">
+
+    <!-- LEFT MAIN -->
+    <div id="main-col">
+
+      <!-- BREAKING NEWS BANNER (shown when featured) -->
+      <div id="breaking-banner" style="display:none">
+        <span class="breaking-label">&#9888; 置顶</span>
+        <span id="breaking-text"></span>
+      </div>
+
+      <!-- RECOMMEND NOTICE -->
+      <div id="recommend-notice" style="display:none">
+        <img src="data:image/gif;base64,R0lGODlhEAAQAMQAAORHHOVSKudfOulrSOp3WOyDZu6QdvCchPGolfO0o/XBs/fNwfjZ0frl3/zy7////wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAkAABAALAAAAAAQABAAAAVVICSOZGlCQAosJ6mu7fiyZeKqNKToQGDsM8hBADgUXoGAiqhSvp5QAnQKGIgUhwFUYLCVDFCrKUE1lBavAViFIDlTImbKC5Gm2hB0SlBCBMQiB0UjIQA7" alt="tip" style="vertical-align:middle" />
+        <strong>为你推荐：</strong> <span id="recommend-text">根据你的浏览偏好为你推荐内容</span>
+      </div>
+
+      <!-- NEWS LIST -->
+      <div id="news-list">
+        <!-- filled by JS -->
+      </div>
+
+      <div id="load-more-wrap">
+        <button class="btn-loadmore" onclick="showToast('没有更多内容了~')">查看更多新闻 &raquo;</button>
+      </div>
+    </div>
+
+    <!-- RIGHT SIDEBAR -->
+    <div id="side-col">
+
+      <!-- HOT TODAY -->
+      <div class="side-widget">
+        <div class="widget-title">
+          <span class="widget-icon">&#128293;</span> 今日热门
+        </div>
+        <div class="widget-body" id="hot-list">
+        </div>
+      </div>
+
+      <!-- CATEGORIES -->
+      <div class="side-widget">
+        <div class="widget-title">
+          <span class="widget-icon">&#128196;</span> 新闻分类
+        </div>
+        <div class="widget-body" id="cat-list">
+        </div>
+      </div>
+
+      <!-- STATS BOX -->
+      <div class="side-widget stats-widget">
+        <div class="widget-title">
+          <span class="widget-icon">&#128202;</span> 站点统计
+        </div>
+        <div class="widget-body">
+          <table class="stats-table">
+            <tr><td>今日文章：</td><td id="stat-today"><strong>0</strong></td></tr>
+            <tr><td>文章总数：</td><td id="stat-total"><strong>0</strong></td></tr>
+            <tr><td>注册用户：</td><td id="stat-users"><strong>0</strong></td></tr>
+            <tr><td>总评论数：</td><td id="stat-comments"><strong>0</strong></td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- AD BOX (retro feel) -->
+      <div class="side-widget ad-widget">
+        <div class="widget-title">友情链接</div>
+        <div class="widget-body">
+          <div class="friend-links">
+            <a href="#" class="friend-link">新华网</a>
+            <a href="#" class="friend-link">人民网</a>
+            <a href="#" class="friend-link">BBC中文</a>
+            <a href="#" class="friend-link">Reuters</a>
+            <a href="#" class="friend-link">FT中文网</a>
+            <a href="#" class="friend-link">36氪</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="clear"></div>
+  </div>
+</div>
+
+<!-- ═══ FOOTER ═══ -->
+<div id="footer">
+  <div id="footer-inner">
+    <div id="footer-links">
+      <a href="#">关于我们</a> | <a href="#">联系方式</a> | <a href="#">免责声明</a> | <a href="#">RSS订阅</a> | <a href="#">意见反馈</a>
+    </div>
+    <div id="copyright">
+      &copy; 2008-2012 新闻汇 NewsBoard &nbsp;·&nbsp; 版权所有 &nbsp;·&nbsp;
+      <span style="color:#aaa">Powered by NewsBoard v2.3.1</span>
+    </div>
+    <div id="footer-badges">
+      <span class="badge">XHTML 1.0</span>
+      <span class="badge">CSS 2.1</span>
+      <span class="badge">&#9733; 精选内容</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ -->
+<!--              MODALS                -->
+<!-- ═══════════════════════════════════ -->
+
+<!-- OVERLAY -->
+<div id="modal-overlay" onclick="closeAllModals()"></div>
+
+<!-- LOGIN MODAL -->
+<div id="login-modal" class="modal-box">
+  <div class="modal-titlebar">
+    <span>会员登录</span>
+    <a href="#" class="modal-close-btn" onclick="closeAllModals();return false;">&#10005;</a>
+  </div>
+  <div class="modal-content">
+    <table class="form-table">
+      <tr>
+        <td class="form-label">邮&nbsp;&nbsp;&nbsp;箱：</td>
+        <td><input type="text" id="login-email" class="form-field" placeholder="请输入注册邮箱" /></td>
+      </tr>
+      <tr>
+        <td class="form-label">密&nbsp;&nbsp;&nbsp;码：</td>
+        <td><input type="password" id="login-password" class="form-field" placeholder="请输入密码" /></td>
+      </tr>
+      <tr>
+        <td></td>
+        <td><div id="login-error" class="form-error" style="display:none">&#10005; 邮箱或密码错误，请重试</div></td>
+      </tr>
+    </table>
+    <div class="modal-btn-row">
+      <button class="btn-submit" onclick="handleLogin()">登&nbsp;录</button>
+      <span class="form-tip">还没有账号？<a href="#" onclick="switchModal('login-modal','signup-modal');return false;">立即注册 &raquo;</a></span>
+    </div>
+  </div>
+</div>
+
+<!-- SIGNUP MODAL -->
+<div id="signup-modal" class="modal-box">
+  <div class="modal-titlebar">
+    <span>免费注册会员</span>
+    <a href="#" class="modal-close-btn" onclick="closeAllModals();return false;">&#10005;</a>
+  </div>
+  <div class="modal-content">
+    <div class="reg-tip">&#9733; 注册即可享受：评论、点赞、收藏、个性化推荐等功能！</div>
+    <table class="form-table">
+      <tr>
+        <td class="form-label">用户名：</td>
+        <td><input type="text" id="signup-username" class="form-field" placeholder="2-12个字符" /></td>
+      </tr>
+      <tr>
+        <td class="form-label">邮&nbsp;&nbsp;&nbsp;箱：</td>
+        <td><input type="text" id="signup-email" class="form-field" placeholder="用于登录" /></td>
+      </tr>
+      <tr>
+        <td class="form-label">密&nbsp;&nbsp;&nbsp;码：</td>
+        <td><input type="password" id="signup-password" class="form-field" placeholder="至少6位" /></td>
+      </tr>
+      <tr>
+        <td></td>
+        <td><div id="signup-error" class="form-error" style="display:none">&#10005; 该邮箱已被注册</div></td>
+      </tr>
+    </table>
+    <div class="modal-btn-row">
+      <button class="btn-submit" onclick="handleSignup()">立即注册</button>
+      <span class="form-tip">已有账号？<a href="#" onclick="switchModal('signup-modal','login-modal');return false;">直接登录 &raquo;</a></span>
+    </div>
+  </div>
+</div>
+
+<!-- ARTICLE MODAL -->
+<div id="article-modal" class="modal-box article-modal-box">
+  <div class="modal-titlebar">
+    <span id="article-modal-title">文章详情</span>
+    <a href="#" class="modal-close-btn" onclick="closeAllModals();return false;">&#10005;</a>
+  </div>
+  <div class="modal-content" id="article-modal-body">
+  </div>
+</div>
+
+<!-- SAVED MODAL -->
+<div id="saved-modal" class="modal-box">
+  <div class="modal-titlebar">
+    <span>&#9733; 我的收藏夹</span>
+    <a href="#" class="modal-close-btn" onclick="closeAllModals();return false;">&#10005;</a>
+  </div>
+  <div class="modal-content" id="saved-modal-body">
+  </div>
+</div>
+
+<!-- ADMIN MODAL -->
+<div id="admin-modal" class="modal-box admin-modal-box">
+  <div class="modal-titlebar">
+    <span>&#9998; 管理后台 - 新闻汇</span>
+    <a href="#" class="modal-close-btn" onclick="closeAllModals();return false;">&#10005;</a>
+  </div>
+  <div class="modal-content">
+    <div id="admin-tabs-nav">
+      <a href="#" class="admin-tab-link active" id="atab-publish" onclick="switchAdminTab('publish');return false;">&#43; 发布新闻</a>
+      <a href="#" class="admin-tab-link" id="atab-manage" onclick="switchAdminTab('manage');return false;">&#9998; 管理文章</a>
+      <a href="#" class="admin-tab-link" id="atab-cats" onclick="switchAdminTab('cats');return false;">&#9776; 管理分类</a>
+    </div>
+
+    <!-- Publish -->
+    <div id="admin-publish">
+      <table class="form-table" style="width:100%">
+        <tr>
+          <td class="form-label">标&nbsp;&nbsp;&nbsp;题：</td>
+          <td><input type="text" id="pub-title" class="form-field wide" placeholder="新闻标题（必填）" /></td>
+        </tr>
+        <tr>
+          <td class="form-label">来&nbsp;&nbsp;&nbsp;源：</td>
+          <td><input type="text" id="pub-source" class="form-field wide" placeholder="媒体名称，如：新华社" /></td>
+        </tr>
+        <tr>
+          <td class="form-label">原文链接：</td>
+          <td><input type="text" id="pub-url" class="form-field wide" placeholder="https://..." /></td>
+        </tr>
+        <tr>
+          <td class="form-label">分&nbsp;&nbsp;&nbsp;类：</td>
+          <td><select id="pub-category" class="form-select"></select></td>
+        </tr>
+        <tr>
+          <td class="form-label">热度标签：</td>
+          <td>
+            <select id="pub-heat" class="form-select">
+              <option value="">无</option>
+              <option value="【热门】">【热门】</option>
+              <option value="【突发】">【突发】</option>
+              <option value="【独家】">【独家】</option>
+              <option value="【精选】">【精选】</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td class="form-label">图&nbsp;标：</td>
+          <td><input type="text" id="pub-emoji" class="form-field" placeholder="Emoji，如：🌏 📈 ⚽" /></td>
+        </tr>
+        <tr>
+          <td class="form-label" style="vertical-align:top;padding-top:6px">摘&nbsp;&nbsp;&nbsp;要：</td>
+          <td><textarea id="pub-desc" class="form-textarea" rows="3" placeholder="简短描述这篇文章内容..."></textarea></td>
+        </tr>
+      </table>
+      <div class="modal-btn-row" style="margin-top:12px">
+        <button class="btn-submit" onclick="publishArticle()">发布文章</button>
+        <button class="btn-cancel" onclick="closeAllModals()">取消</button>
+      </div>
+    </div>
+
+    <!-- Manage -->
+    <div id="admin-manage" style="display:none">
+      <div id="manage-list" class="manage-scroll"></div>
+    </div>
+
+    <!-- Categories -->
+    <div id="admin-cats" style="display:none">
+      <div style="margin-bottom:10px;display:flex;gap:8px">
+        <input type="text" id="new-cat-name" class="form-field" placeholder="新分类名称" style="flex:1" />
+        <button class="btn-submit" onclick="addCategory()" style="width:auto;padding:5px 16px">添加</button>
+      </div>
+      <div id="cats-manage-list" class="manage-scroll"></div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast-box"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
