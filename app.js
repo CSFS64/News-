@@ -759,7 +759,7 @@ var Auth = {
       State.userSaves = results[1]||[];
       Dialog.close('dlg-login');
       Auth.renderHeader();
-      App.refresh();
+      App.refresh().catch(function(){});
       Toast.show('欢迎回来，'+State.currentUser.username);
     }).catch(function(){ err.hidden = false; });
   },
@@ -777,7 +777,7 @@ var Auth = {
       State.userLikes=[]; State.userSaves=[];
       Dialog.close('dlg-signup');
       Auth.renderHeader();
-      App.refresh();
+      App.refresh().catch(function(){});
       Toast.show('欢迎加入，'+r.user.username+(r.user.isAdmin?'（管理员）':'')+' ✓');
     }).catch(function(e){
       if (e.code==='EMAIL_EXISTS') {
