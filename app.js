@@ -293,13 +293,19 @@ document.addEventListener('click', function (e) {
   if (authorEl) { e.stopPropagation(); Profile.open(authorEl.dataset.uid); return; }
 
   var btn = e.target.closest('[data-action]');
-  if (!btn) return;
-  e.stopPropagation();
-  var action = btn.dataset.action, id = btn.dataset.id;
-  if (action==='like')    Interactions.like(id, btn);
-  if (action==='save')    Interactions.save(id, btn);
-  if (action==='comment') Article.open(id, true);
-  if (action==='open')    Article.open(id);
+  if (btn) {
+    e.stopPropagation();
+    var action = btn.dataset.action, id = btn.dataset.id;
+    if (action==='like')    Interactions.like(id, btn);
+    if (action==='save')    Interactions.save(id, btn);
+    if (action==='comment') Article.open(id, true);
+    if (action==='open')    Article.open(id);
+    return;
+  }
+
+  // Click anywhere on card → open article
+  var card = e.target.closest('.news-card');
+  if (card && card.dataset.id) Article.open(card.dataset.id);
 });
 
 /* ══════════════════════════════════════════════════════════
@@ -734,12 +740,7 @@ var Auth = {
         if (notifBtn) notifBtn.addEventListener('click', Notifications.open);
         var userBtn = document.getElementById('btn-user-panel');
         if (userBtn) userBtn.addEventListener('click', function(){
-          document.getElementById('user-panel-info').innerHTML =
-            '<strong>操作员：</strong>'+esc(u.username)+'<br>'+
-            '<strong>邮&emsp;箱：</strong>'+esc(u.email)+'<br>'+
-            '<strong>权&emsp;限：</strong>'+(u.isAdmin?'管理员':'普通用户')+'<br>'+
-            '<strong>注册于：</strong>'+formatDate(u.joinDate);
-          Dialog.open('dlg-user');
+          UserPanel.open();
         });
         Notifications.start();
       }, 0);
@@ -800,6 +801,121 @@ var Auth = {
       App.refresh();
       Toast.show('已安全退出');
     });
+  }
+};
+
+/* ══════════════════════════════════════════════════════════
+   USER PANEL (my own profile)
+   ══════════════════════════════════════════════════════════ */
+var UserPanel = {
+  _currentTab: 'articles',
+
+  open: function () {
+    var u = State.currentUser;
+    if (!u) return;
+    // Render header info
+    document.getElementById('user-panel-header').innerHTML =
+      '<div style="display:flex;align-items:center;gap:12px">'+
+      '<div class="profile-avatar" style="width:44px;height:44px;font-size:18px">'+u.username[0].toUpperCase()+'</div>'+
+      '<div>'+
+      '<div style="font-family:var(--head);font-size:16px;font-weight:700;color:var(--text-bright)">'+esc(u.username)+'</div>'+
+      '<div style="font-family:var(--mono);font-size:11px;color:var(--text-dim)">'+esc(u.email)+(u.isAdmin?' · 管理员':'')+'</div>'+
+      '</div></div>';
+    Dialog.open('dlg-user');
+    UserPanel.switchTab('articles');
+    // Bind tab buttons
+    document.querySelectorAll('.upanel-tab').forEach(function(btn){
+      btn.onclick = function(){ UserPanel.switchTab(btn.dataset.utab); };
+    });
+  },
+
+  switchTab: function (tab) {
+    UserPanel._currentTab = tab;
+    document.querySelectorAll('.upanel-tab').forEach(function(btn){
+      btn.classList.toggle('active', btn.dataset.utab === tab);
+    });
+    var body = document.getElementById('user-panel-body');
+    body.innerHTML = '<div style="padding:20px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--text-dim)">加载中…</div>';
+
+    if (tab === 'articles') {
+      API.getProfileArticles(State.currentUser.id).then(function(arts){
+        if (!arts||!arts.length) { body.innerHTML = '<div class="profile-empty" style="padding:20px">暂无发布内容</div>'; return; }
+        body.innerHTML = arts.map(function(a){
+          return '<div class="upanel-item">'+
+            '<div class="upanel-item-main" onclick="Dialog.close(\'dlg-user\');Article.open(\''+a.id+'\')">'+
+            '<span class="profile-art-emoji">'+(a.emoji||'📰')+'</span>'+
+            '<div><div class="profile-art-title">'+esc(a.title)+'</div>'+
+            '<div class="profile-art-meta">'+esc(a.source)+' · '+formatDate(a.date)+' · ♥ '+a.likes+'</div></div>'+
+            '</div>'+
+            '<button class="upanel-del-btn" onclick="UserPanel.deleteArticle(\''+a.id+'\',this)">删除</button>'+
+            '</div>';
+        }).join('');
+      }).catch(function(){ body.innerHTML = '<div class="profile-empty" style="padding:20px">加载失败</div>'; });
+
+    } else if (tab === 'comments') {
+      API.getProfileComments(State.currentUser.id).then(function(cmts){
+        if (!cmts||!cmts.length) { body.innerHTML = '<div class="profile-empty" style="padding:20px">暂无评论记录</div>'; return; }
+        body.innerHTML = cmts.map(function(c){
+          return '<div class="upanel-item">'+
+            '<div class="upanel-item-main" onclick="Dialog.close(\'dlg-user\');Article.open(\''+c.articleId+'\')">'+
+            '<div class="profile-cmt-article">↳ '+esc(c.articleTitle)+'</div>'+
+            '<div class="profile-cmt-body">'+esc(c.text)+'</div>'+
+            '<div class="profile-cmt-meta">'+formatDate(c.date)+'</div>'+
+            '</div>'+
+            '<button class="upanel-del-btn" onclick="UserPanel.deleteComment(\''+c.id+'\',\''+c.articleId+'\',this)">删除</button>'+
+            '</div>';
+        }).join('');
+      }).catch(function(){ body.innerHTML = '<div class="profile-empty" style="padding:20px">加载失败</div>'; });
+
+    } else if (tab === 'saved') {
+      API.getUserSaves(State.currentUser.id).then(function(ids){
+        if (!ids||!ids.length) { body.innerHTML = '<div class="profile-empty" style="padding:20px">暂无收藏</div>'; return; }
+        return API.getArticles({}).then(function(arts){
+          var saved = ids.map(function(id){ return (arts||[]).find(function(a){return a.id===id;}); }).filter(Boolean);
+          if (!saved.length) { body.innerHTML = '<div class="profile-empty" style="padding:20px">暂无收藏</div>'; return; }
+          body.innerHTML = saved.map(function(a){
+            return '<div class="upanel-item">'+
+              '<div class="upanel-item-main" onclick="Dialog.close(\'dlg-user\');Article.open(\''+a.id+'\')">'+
+              '<span class="profile-art-emoji">'+(a.emoji||'📰')+'</span>'+
+              '<div><div class="profile-art-title">'+esc(a.title)+'</div>'+
+              '<div class="profile-art-meta">'+esc(a.source)+'</div></div>'+
+              '</div>'+
+              '<button class="upanel-del-btn" onclick="UserPanel.unsave(\''+a.id+'\',this)">取消收藏</button>'+
+              '</div>';
+          }).join('');
+        });
+      }).catch(function(){ body.innerHTML = '<div class="profile-empty" style="padding:20px">加载失败</div>'; });
+    }
+  },
+
+  deleteArticle: function (id, btn) {
+    if (!confirm('确认删除这篇文章？')) return;
+    API.deleteArticle(id).then(function(){
+      var row = btn.closest('.upanel-item');
+      if (row) row.remove();
+      App.renderFeed();
+      Toast.show('文章已删除');
+    }).catch(function(){ Toast.show('删除失败', true); });
+  },
+
+  deleteComment: function (commentId, articleId, btn) {
+    if (!confirm('确认删除这条评论？')) return;
+    API.deleteComment(articleId, commentId).then(function(){
+      var row = btn.closest('.upanel-item');
+      if (row) row.remove();
+      Toast.show('评论已删除');
+    }).catch(function(){ Toast.show('删除失败', true); });
+  },
+
+  unsave: function (id, btn) {
+    API.toggleSave(id).then(function(){
+      var idx = State.userSaves.indexOf(id);
+      if (idx>=0) State.userSaves.splice(idx,1);
+      var row = btn.closest('.upanel-item');
+      if (row) row.remove();
+      App.renderFeed();
+      Toast.show('已取消收藏');
+    }).catch(function(){ Toast.show('操作失败', true); });
   }
 };
 
