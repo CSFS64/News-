@@ -1292,3 +1292,22 @@ dialog::backdrop { background: transparent; }
 .profile-cmt-body    { font-family: var(--body); font-size: 13px; color: var(--text); line-height: 1.5; margin-bottom: 4px; }
 .profile-cmt-meta    { font-family: var(--mono); font-size: 10px; color: var(--text-dim); }
 .profile-empty       { font-family: var(--mono); font-size: 11px; color: var(--text-dim); padding: 16px 0; text-align: center; }
+
+/* ── Comment collapse ── */
+#cmt-collapsed-\3a { display: none; }
+.cmt-collapsed { display: none; }
+.cmt-show-more {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 7px 14px;
+  margin: 8px 0;
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  color: var(--olive-light);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+}
+.cmt-show-more:hover { background: var(--bg4); border-color: var(--olive-light); color: var(--text-bright); }
