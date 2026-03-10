@@ -1,31 +1,26 @@
 /**
- * ═══════════════════════════════════════════════════════════════
- *  战线快报 · FRONTLINE DISPATCH
- *  app.js — Application Controller
- *
- *  All data access goes through API.* (defined in api.js).
- *  This file never touches localStorage or fetch() directly.
- * ═══════════════════════════════════════════════════════════════
+ * 战线快报 · FRONTLINE DISPATCH
+ * app.js v2 — Social features: profiles, follows, comment threads, notifications
  */
 
 /* ══════════════════════════════════════════════════════════
-   APP STATE
+   STATE
    ══════════════════════════════════════════════════════════ */
 var State = {
-  currentTab:  '全部',
-  searchQuery: '',
-  currentUser: null,
-  userLikes:   [],     // article ids liked by current user
-  userSaves:   [],     // article ids saved by current user
-  loading:     false
+  currentTab:   '全部',
+  currentFeed:  'all',      // 'all' | 'following'
+  searchQuery:  '',
+  currentUser:  null,
+  userLikes:    [],
+  userSaves:    [],
+  unreadCount:  0,
 };
 
 /* ══════════════════════════════════════════════════════════
-   BOOTSTRAP
+   BOOT
    ══════════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', function () {
   Clock.start();
-  Ticker.init();
   Dialog.initAll();
 
   API.getSession().then(function (user) {
@@ -34,9 +29,9 @@ document.addEventListener('DOMContentLoaded', function () {
       return Promise.all([
         API.getUserLikes(user.id),
         API.getUserSaves(user.id)
-      ]).then(function (results) {
-        State.userLikes = results[0];
-        State.userSaves = results[1];
+      ]).then(function (r) {
+        State.userLikes = r[0] || [];
+        State.userSaves = r[1] || [];
       });
     }
   }).then(function () {
@@ -44,12 +39,13 @@ document.addEventListener('DOMContentLoaded', function () {
     return App.refresh();
   }).catch(function (e) {
     console.error('[boot]', e);
+    Auth.renderHeader();
     App.refresh();
   });
 });
 
 /* ══════════════════════════════════════════════════════════
-   CLOCK & TICKER
+   CLOCK
    ══════════════════════════════════════════════════════════ */
 var Clock = {
   start: function () {
@@ -57,64 +53,86 @@ var Clock = {
       var el = document.getElementById('utc-clock');
       if (!el) return;
       var now = new Date();
-      var pad = function(n){ return n < 10 ? '0'+n : n; };
-      el.textContent = 'UTC ' + pad(now.getUTCHours()) + ':' + pad(now.getUTCMinutes()) + ':' + pad(now.getUTCSeconds());
+      var pad = function(n){ return n<10?'0'+n:n; };
+      el.textContent = 'UTC '+pad(now.getUTCHours())+':'+pad(now.getUTCMinutes())+':'+pad(now.getUTCSeconds());
     }
-    tick();
-    setInterval(tick, 1000);
+    tick(); setInterval(tick, 1000);
   }
 };
 
+/* ══════════════════════════════════════════════════════════
+   TICKER
+   ══════════════════════════════════════════════════════════ */
 var Ticker = {
   init: function () {
-    API.getArticles({ tab: '全部' }).then(function (arts) {
-      var texts = arts.slice(0, 8).map(function (a) {
-        return (a.alertLevel ? '【' + a.alertLevel + '】' : '★') + ' ' + a.title;
+    API.getArticles({}).then(function (arts) {
+      var texts = (arts||[]).slice(0,8).map(function(a){
+        return (a.alertLevel?'【'+a.alertLevel+'】':'★')+' '+a.title;
       });
       var el = document.getElementById('ticker-content');
-      if (el) el.textContent = texts.join('　　　·　　　');
+      if (el) el.textContent = texts.join('　　·　　');
     }).catch(function(){});
   }
 };
 
 /* ══════════════════════════════════════════════════════════
-   MAIN APP
+   APP CORE
    ══════════════════════════════════════════════════════════ */
 var App = {
-
   refresh: function () {
+    Ticker.init();
     return Promise.all([
       App.renderTabs(),
       App.renderFeed(),
       App.renderSidebar(),
-      App.renderStats()
+      App.renderStats(),
     ]);
   },
 
   /* ── TABS ── */
   renderTabs: function () {
-    return API.getTabs().then(function (tabs) {
-      return API.getArticles({}).then(function (allArts) {
-        var nav = document.getElementById('tabs-row');
-        nav.innerHTML = '';
-        tabs.forEach(function (t) {
-          var count = t === '全部' ? allArts.length
-            : allArts.filter(function(a){ return a.category === t; }).length;
-          var btn = document.createElement('button');
-          btn.className = 'tab-btn' + (State.currentTab === t ? ' active' : '');
-          btn.innerHTML = t + (count > 0 ? '<span class="tab-pip">' + count + '</span>' : '');
-          btn.addEventListener('click', function () { App.switchTab(t); });
-          nav.appendChild(btn);
-        });
+    return Promise.all([API.getTabs(), API.getArticles({})]).then(function (res) {
+      var tabs = res[0] || [];
+      var allArts = res[1] || [];
+      var nav = document.getElementById('tabs-row');
+      nav.innerHTML = '';
+
+      // "关注" pseudo-tab (only shown when logged in)
+      if (State.currentUser) {
+        var followBtn = document.createElement('button');
+        followBtn.className = 'tab-btn' + (State.currentFeed==='following' ? ' active' : '');
+        followBtn.innerHTML = '关注';
+        followBtn.addEventListener('click', function(){ App.switchFeed('following'); });
+        nav.appendChild(followBtn);
+      }
+
+      tabs.forEach(function (t) {
+        var count = t==='全部' ? allArts.length : allArts.filter(function(a){return a.category===t;}).length;
+        var btn = document.createElement('button');
+        btn.className = 'tab-btn' + (State.currentFeed==='all' && State.currentTab===t ? ' active' : '');
+        btn.innerHTML = t + (count>0 ? '<span class="tab-pip">'+count+'</span>' : '');
+        btn.addEventListener('click', function(){ App.switchTab(t); });
+        nav.appendChild(btn);
       });
     });
   },
 
   switchTab: function (tab) {
     State.currentTab  = tab;
+    State.currentFeed = 'all';
     State.searchQuery = '';
     var si = document.getElementById('search-input');
     if (si) si.value = '';
+    App.renderTabs();
+    App.renderFeed();
+  },
+
+  switchFeed: function (feed) {
+    if (feed === 'following' && !State.currentUser) {
+      Toast.show('请先登录', true); Dialog.open('dlg-login'); return;
+    }
+    State.currentFeed = feed;
+    State.searchQuery = '';
     App.renderTabs();
     App.renderFeed();
   },
@@ -124,94 +142,66 @@ var App = {
     var feedEl = document.getElementById('news-feed');
     feedEl.innerHTML = '<div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-text">LOADING…</div></div>';
 
-    return API.getArticles({ tab: State.currentTab, search: State.searchQuery })
-      .then(function (arts) {
-        // Sort: featured first → alert level → likes
-        var alertOrder = { BREAKING:0, URGENT:1, EXCLUSIVE:2, ANALYSIS:3, '':4 };
-        arts = arts.slice().sort(function (a, b) {
+    var opts = {
+      tab:    State.currentTab,
+      search: State.searchQuery,
+      feed:   State.currentFeed === 'following' ? 'following' : undefined,
+    };
+
+    return API.getArticles(opts).then(function (arts) {
+      arts = arts || [];
+      var alertOrder = {BREAKING:0,URGENT:1,EXCLUSIVE:2,ANALYSIS:3,'':4};
+      if (State.currentFeed !== 'following') {
+        arts = arts.slice().sort(function(a,b){
           if (a.featured && !b.featured) return -1;
           if (!a.featured && b.featured) return 1;
-          var ao = alertOrder[a.alertLevel||''] !== undefined ? alertOrder[a.alertLevel||''] : 4;
-          var bo = alertOrder[b.alertLevel||''] !== undefined ? alertOrder[b.alertLevel||''] : 4;
-          if (ao !== bo) return ao - bo;
-          return b.likes - a.likes;
+          var ao = alertOrder[a.alertLevel||'']!==undefined?alertOrder[a.alertLevel||'']:4;
+          var bo = alertOrder[b.alertLevel||'']!==undefined?alertOrder[b.alertLevel||'']:4;
+          return ao!==bo ? ao-bo : b.likes-a.likes;
         });
+      }
 
-        // Update feed header
-        document.getElementById('feed-count').textContent =
-          arts.length + ' 条战报' + (State.searchQuery ? ' · 搜索："' + State.searchQuery + '"' : '');
-        document.getElementById('feed-label').textContent =
-          State.currentTab === '全部' ? '// 全部战报' : '// ' + State.currentTab;
+      var feedLabel = document.getElementById('feed-label');
+      var feedCount = document.getElementById('feed-count');
+      if (feedLabel) feedLabel.textContent = State.currentFeed==='following' ? '// 关注动态' : '// '+State.currentTab;
+      if (feedCount) feedCount.textContent = arts.length + ' 条战报' + (State.searchQuery?' · 搜索："'+State.searchQuery+'"':'');
 
-        // Recommendation banner
-        App._renderRecBanner(arts);
-
-        if (arts.length === 0) {
-          feedEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📡</div><div class="empty-text">// NO SIGNAL — 暂无相关战报</div></div>';
-          return;
-        }
-
-        feedEl.innerHTML = arts.map(function (a, i) { return Render.card(a, i); }).join('');
-      })
-      .catch(function (e) {
-        console.error('[feed]', e);
-        feedEl.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠</div><div class="empty-text">// LOAD ERROR — 加载失败</div></div>';
-      });
-  },
-
-  _renderRecBanner: function (arts) {
-    var banner = document.getElementById('rec-banner');
-    API.getViewHistory().then(function (views) {
-      if (!views || views.length < 3 || State.currentTab !== '全部') {
-        banner.hidden = true;
+      if (arts.length === 0) {
+        var msg = State.currentFeed==='following' ? '关注的人还没有发布内容' : '暂无相关战报';
+        feedEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📡</div><div class="empty-text">// NO SIGNAL — '+msg+'</div></div>';
         return;
       }
-      var allArts = arts;
-      var catCount = {};
-      views.forEach(function (id) {
-        var a = allArts.find(function(x){ return x.id === id; });
-        if (a) catCount[a.category] = (catCount[a.category]||0) + 1;
-      });
-      var topCat = null, topN = 0;
-      Object.keys(catCount).forEach(function(k){ if(catCount[k]>topN){ topN=catCount[k]; topCat=k; } });
-      if (topCat) {
-        document.getElementById('rec-text').textContent =
-          '根据你的浏览记录，为你优先展示「' + topCat + '」相关战报';
-        banner.hidden = false;
-      } else {
-        banner.hidden = true;
-      }
-    }).catch(function(){ banner.hidden = true; });
+      feedEl.innerHTML = arts.map(function(a,i){ return Render.card(a,i); }).join('');
+    }).catch(function(e){
+      console.error('[feed]',e);
+      feedEl.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠</div><div class="empty-text">// LOAD ERROR</div></div>';
+    });
   },
 
   /* ── SIDEBAR ── */
   renderSidebar: function () {
     return API.getArticles({}).then(function (arts) {
-      // Hot
-      var sorted = arts.slice().sort(function(a,b){ return b.likes - a.likes; }).slice(0, 5);
+      arts = arts || [];
+      var sorted = arts.slice().sort(function(a,b){return b.likes-a.likes;}).slice(0,5);
       var hotEl = document.getElementById('hot-feed');
-      hotEl.innerHTML = sorted.map(function (a, i) {
-        var cls = i === 0 ? ' r1' : i === 1 ? ' r2' : i === 2 ? ' r3' : '';
-        return '<div class="hot-item" data-id="' + a.id + '">' +
-          '<div class="hot-rank' + cls + '">' + (i+1) + '</div>' +
-          '<div><div class="hot-text">' + esc(a.title) + '</div>' +
-          '<div class="hot-meta">♥ ' + a.likes + ' · ' + a.source + '</div></div>' +
-          '</div>';
-      }).join('');
-      // Attach click
-      hotEl.querySelectorAll('.hot-item').forEach(function(el){
-        el.addEventListener('click', function(){ Article.open(el.dataset.id); });
-      });
-
-      // Cats
+      if (hotEl) {
+        hotEl.innerHTML = sorted.map(function(a,i){
+          var cls = i===0?' r1':i===1?' r2':i===2?' r3':'';
+          return '<div class="hot-item" data-id="'+a.id+'">'+
+            '<div class="hot-rank'+cls+'">'+(i+1)+'</div>'+
+            '<div><div class="hot-text">'+esc(a.title)+'</div>'+
+            '<div class="hot-meta">♥ '+a.likes+' · '+esc(a.source)+'</div></div></div>';
+        }).join('');
+        hotEl.querySelectorAll('.hot-item').forEach(function(el){
+          el.addEventListener('click', function(){ Article.open(el.dataset.id); });
+        });
+      }
       return API.getTabs().then(function(tabs){
         var catsEl = document.getElementById('cats-body');
-        catsEl.innerHTML = tabs.filter(function(t){ return t !== '全部'; }).map(function(t){
-          var count = arts.filter(function(a){ return a.category === t; }).length;
-          return '<div class="cat-item" data-tab="' + t + '">' +
-            '<span class="cat-name">▸ ' + t + '</span>' +
-            '<span class="cat-count">' + count + '</span>' +
-            '</div>';
+        if (!catsEl) return;
+        catsEl.innerHTML = (tabs||[]).filter(function(t){return t!=='全部';}).map(function(t){
+          var count = arts.filter(function(a){return a.category===t;}).length;
+          return '<div class="cat-item" data-tab="'+t+'"><span class="cat-name">▸ '+t+'</span><span class="cat-count">'+count+'</span></div>';
         }).join('');
         catsEl.querySelectorAll('.cat-item').forEach(function(el){
           el.addEventListener('click', function(){ App.switchTab(el.dataset.tab); });
@@ -221,44 +211,42 @@ var App = {
   },
 
   renderStats: function () {
-    return API.getStats().then(function (s) {
-      document.getElementById('s-articles').textContent = s.articles;
-      document.getElementById('s-today').textContent    = s.today;
-      document.getElementById('s-users').textContent    = s.users;
-      document.getElementById('s-comments').textContent = s.comments;
+    return API.getStats().then(function(s){
+      if (!s) return;
+      document.getElementById('s-articles').textContent = s.articles||0;
+      document.getElementById('s-today').textContent    = s.today||0;
+      document.getElementById('s-users').textContent    = s.users||0;
+      document.getElementById('s-comments').textContent = s.comments||0;
     }).catch(function(){});
   },
 
   renderSaved: function () {
     var widget = document.getElementById('widget-saved');
     var feedEl = document.getElementById('saved-feed');
-    if (!State.currentUser) { widget.hidden = true; return; }
+    if (!State.currentUser || !widget) return;
     API.getUserSaves(State.currentUser.id).then(function(ids){
-      State.userSaves = ids;
-      if (!ids || ids.length === 0) { widget.hidden = true; return; }
+      State.userSaves = ids||[];
+      if (!ids||ids.length===0){ widget.hidden=true; return; }
       return API.getArticles({}).then(function(arts){
-        var saved = ids.map(function(id){ return arts.find(function(a){ return a.id===id; }); }).filter(Boolean);
-        if (saved.length === 0) { widget.hidden = true; return; }
+        var saved = ids.map(function(id){ return (arts||[]).find(function(a){return a.id===id;}); }).filter(Boolean);
+        if (!saved.length){ widget.hidden=true; return; }
         widget.hidden = false;
         feedEl.innerHTML = saved.map(function(a){
-          return '<div class="saved-item" data-id="' + a.id + '">' +
-            '<span class="saved-emoji">' + (a.emoji||'📰') + '</span>' +
-            '<div><div class="saved-title">' + esc(a.title) + '</div>' +
-            '<div class="saved-src">' + esc(a.source) + '</div></div>' +
-            '</div>';
+          return '<div class="saved-item" data-id="'+a.id+'">'+
+            '<span class="saved-emoji">'+(a.emoji||'📰')+'</span>'+
+            '<div><div class="saved-title">'+esc(a.title)+'</div>'+
+            '<div class="saved-src">'+esc(a.source)+'</div></div></div>';
         }).join('');
         feedEl.querySelectorAll('.saved-item').forEach(function(el){
           el.addEventListener('click', function(){ Article.open(el.dataset.id); });
         });
       });
-    }).catch(function(){ widget.hidden = true; });
+    }).catch(function(){ if(widget) widget.hidden=true; });
   },
 
   openSaved: function () {
     Dialog.close('dlg-user');
     App.renderSaved();
-    var w = document.getElementById('widget-saved');
-    if (w && !w.hidden) w.scrollIntoView({ behavior: 'smooth' });
     Toast.show('已展开存档面板');
   }
 };
@@ -268,44 +256,50 @@ var App = {
    ══════════════════════════════════════════════════════════ */
 var Render = {
   card: function (a, i) {
-    var liked = State.userLikes.indexOf(a.id) >= 0;
-    var saved = State.userSaves.indexOf(a.id) >= 0;
-    var isFeat = a.featured && i === 0 && State.currentTab === '全部' && !State.searchQuery;
+    var liked   = State.userLikes.indexOf(a.id) >= 0;
+    var saved   = State.userSaves.indexOf(a.id) >= 0;
+    var isFeat  = a.featured && i===0 && State.currentFeed==='all' && State.currentTab==='全部' && !State.searchQuery;
 
-    var tags = '<span class="tag tag-cat">' + a.category + '</span>';
-    if (a.alertLevel) tags += '<span class="tag tag-alert-' + a.alertLevel + '">' + a.alertLevel + '</span>';
-    if (isFeat) tags += '<span class="tag tag-featured">★ FEATURED</span>';
-    tags += '<span class="tag-source">' + esc(a.source) + '</span>';
-    tags += '<span class="tag-date">' + formatDate(a.date) + '</span>';
+    var tags = '<span class="tag tag-cat">'+a.category+'</span>';
+    if (a.alertLevel) tags += '<span class="tag tag-alert-'+a.alertLevel+'">'+a.alertLevel+'</span>';
+    if (isFeat)       tags += '<span class="tag tag-featured">★ FEATURED</span>';
+    tags += '<span class="tag-source">'+esc(a.source)+'</span>';
+    tags += '<span class="tag-date">'+formatDate(a.date)+'</span>';
 
-    return '<div class="news-card' + (isFeat ? ' is-featured' : '') + '" data-id="' + a.id + '">' +
-      '<div class="card-inner">' +
-      '<div class="card-icon">' + (a.emoji||'📰') + '</div>' +
-      '<div class="card-body">' +
-      '<div class="card-tags">' + tags + '</div>' +
-      '<div class="card-title">' + esc(a.title) + '</div>' +
-      (a.desc ? '<div class="card-desc">' + esc(a.desc) + '</div>' : '') +
-      '<div class="card-actions">' +
-      '<button class="act-btn' + (liked?' is-liked':'') + '" data-action="like" data-id="' + a.id + '">♥ <span>' + a.likes + '</span></button>' +
-      '<button class="act-btn' + (saved?' is-saved':'') + '" data-action="save" data-id="' + a.id + '">◈ <span>' + (a.saves||0) + '</span></button>' +
-      '<button class="act-btn" data-action="comment" data-id="' + a.id + '">💬 ' + (a.comments||[]).length + '</button>' +
-      '<button class="act-btn act-btn-read" data-action="open" data-id="' + a.id + '">阅读 →</button>' +
-      '</div>' +
-      '</div></div></div>';
+    var authorHtml = a.authorId
+      ? '<span class="card-author" data-uid="'+a.authorId+'">@'+esc(a.authorName||'匿名')+'</span>'
+      : '';
+
+    return '<div class="news-card'+(isFeat?' is-featured':'')+'" data-id="'+a.id+'">'+
+      '<div class="card-inner">'+
+      '<div class="card-icon">'+(a.emoji||'📰')+'</div>'+
+      '<div class="card-body">'+
+      '<div class="card-tags">'+tags+authorHtml+'</div>'+
+      '<div class="card-title">'+esc(a.title)+'</div>'+
+      (a.desc?'<div class="card-desc">'+esc(a.desc)+'</div>':'')+
+      '<div class="card-actions">'+
+      '<button class="act-btn'+(liked?' is-liked':'')+'" data-action="like" data-id="'+a.id+'">♥ <span>'+a.likes+'</span></button>'+
+      '<button class="act-btn'+(saved?' is-saved':'')+'" data-action="save" data-id="'+a.id+'">◈ <span>'+(a.saves||0)+'</span></button>'+
+      '<button class="act-btn" data-action="comment" data-id="'+a.id+'">💬 '+(a.comments&&a.comments.length?a.comments.length:0)+'</button>'+
+      '<button class="act-btn act-btn-read" data-action="open" data-id="'+a.id+'">阅读 →</button>'+
+      '</div></div></div></div>';
   }
 };
 
-/* Delegate card events */
+/* Delegate card clicks */
 document.addEventListener('click', function (e) {
+  // Author name → profile
+  var authorEl = e.target.closest('.card-author');
+  if (authorEl) { e.stopPropagation(); Profile.open(authorEl.dataset.uid); return; }
+
   var btn = e.target.closest('[data-action]');
   if (!btn) return;
   e.stopPropagation();
-  var action = btn.dataset.action;
-  var id = btn.dataset.id;
-  if (action === 'like')    Interactions.like(id, btn);
-  if (action === 'save')    Interactions.save(id, btn);
-  if (action === 'comment') Article.open(id, true);
-  if (action === 'open')    Article.open(id);
+  var action = btn.dataset.action, id = btn.dataset.id;
+  if (action==='like')    Interactions.like(id, btn);
+  if (action==='save')    Interactions.save(id, btn);
+  if (action==='comment') Article.open(id, true);
+  if (action==='open')    Article.open(id);
 });
 
 /* ══════════════════════════════════════════════════════════
@@ -313,40 +307,44 @@ document.addEventListener('click', function (e) {
    ══════════════════════════════════════════════════════════ */
 var Interactions = {
   like: function (id, btn) {
-    if (!State.currentUser) { Toast.show('请先登录后再点赞', true); Dialog.open('dlg-login'); return; }
-    API.toggleLike(id, State.currentUser.id).then(function (r) {
+    if (!State.currentUser) { Toast.show('请先登录', true); Dialog.open('dlg-login'); return; }
+    API.toggleLike(id, State.currentUser.id).then(function(r){
       var idx = State.userLikes.indexOf(id);
-      if (r.liked) { if (idx < 0) State.userLikes.push(id); }
-      else         { if (idx >= 0) State.userLikes.splice(idx, 1); }
-      // Update all like buttons for this article
-      document.querySelectorAll('[data-action="like"][data-id="' + id + '"]').forEach(function(b){
-        b.className = 'act-btn' + (r.liked ? ' is-liked' : '');
-        var s = b.querySelector('span');
-        if (s) s.textContent = r.count;
+      if (r.liked){ if(idx<0) State.userLikes.push(id); }
+      else        { if(idx>=0) State.userLikes.splice(idx,1); }
+      document.querySelectorAll('[data-action="like"][data-id="'+id+'"]').forEach(function(b){
+        b.className='act-btn'+(r.liked?' is-liked':'');
+        var s=b.querySelector('span'); if(s) s.textContent=r.count;
       });
-      // Update modal button if open
-      var mb = document.getElementById('modal-like-' + id);
-      if (mb) { mb.className = 'act-btn' + (r.liked ? ' is-liked' : ''); mb.querySelector('span').textContent = r.count; }
-      Toast.show(r.liked ? '已点赞 ♥' : '已取消点赞');
-    }).catch(function(e){ Toast.show('操作失败：' + (e.message||''), true); });
+      var mb=document.getElementById('modal-like-'+id);
+      if(mb){ mb.className='act-btn'+(r.liked?' is-liked':''); var s=mb.querySelector('span'); if(s)s.textContent=r.count; }
+      Toast.show(r.liked?'已点赞 ♥':'已取消点赞');
+    }).catch(function(){ Toast.show('操作失败',true); });
   },
 
   save: function (id, btn) {
-    if (!State.currentUser) { Toast.show('请先登录后再收藏', true); Dialog.open('dlg-login'); return; }
-    API.toggleSave(id, State.currentUser.id).then(function (r) {
+    if (!State.currentUser) { Toast.show('请先登录', true); Dialog.open('dlg-login'); return; }
+    API.toggleSave(id, State.currentUser.id).then(function(r){
       var idx = State.userSaves.indexOf(id);
-      if (r.saved) { if (idx < 0) State.userSaves.push(id); }
-      else         { if (idx >= 0) State.userSaves.splice(idx, 1); }
-      document.querySelectorAll('[data-action="save"][data-id="' + id + '"]').forEach(function(b){
-        b.className = 'act-btn' + (r.saved ? ' is-saved' : '');
-        var s = b.querySelector('span');
-        if (s) s.textContent = r.count;
+      if (r.saved){ if(idx<0) State.userSaves.push(id); }
+      else        { if(idx>=0) State.userSaves.splice(idx,1); }
+      document.querySelectorAll('[data-action="save"][data-id="'+id+'"]').forEach(function(b){
+        b.className='act-btn'+(r.saved?' is-saved':'');
+        var s=b.querySelector('span'); if(s) s.textContent=r.count;
       });
-      var mb = document.getElementById('modal-save-' + id);
-      if (mb) { mb.className = 'act-btn' + (r.saved ? ' is-saved' : ''); mb.querySelector('span').textContent = r.count; }
       App.renderSaved();
-      Toast.show(r.saved ? '已存档 ◈' : '已取消存档');
-    }).catch(function(e){ Toast.show('操作失败：' + (e.message||''), true); });
+      Toast.show(r.saved?'已存档 ◈':'已取消存档');
+    }).catch(function(){ Toast.show('操作失败',true); });
+  },
+
+  likeComment: function (articleId, commentId, btn) {
+    if (!State.currentUser) { Toast.show('请先登录', true); Dialog.open('dlg-login'); return; }
+    API.toggleCommentLike(articleId, commentId).then(function(r){
+      if (btn) {
+        btn.className = 'cmt-like-btn'+(r.liked?' is-liked':'');
+        var s = btn.querySelector('.cmt-like-count'); if(s) s.textContent=r.count;
+      }
+    }).catch(function(){ Toast.show('操作失败',true); });
   }
 };
 
@@ -354,90 +352,316 @@ var Interactions = {
    ARTICLE DETAIL
    ══════════════════════════════════════════════════════════ */
 var Article = {
+  _currentArticleId: null,
+
   open: function (id, focusComment) {
-    API.getArticle(id).then(function (a) {
+    API.getArticle(id).then(function(a){
+      Article._currentArticleId = id;
       API.recordView(id);
       Article._render(a);
       Dialog.open('dlg-article');
       if (focusComment) {
         setTimeout(function(){
-          var ta = document.getElementById('comment-ta');
-          if (ta) ta.focus();
+          var ta=document.getElementById('comment-ta'); if(ta) ta.focus();
         }, 200);
       }
-      // Refresh recommendation banner after viewing
-      setTimeout(function(){ App.renderFeed(); }, 400);
-    }).catch(function(){ Toast.show('加载失败', true); });
+    }).catch(function(){ Toast.show('加载失败',true); });
   },
 
   _render: function (a) {
-    var liked = State.userLikes.indexOf(a.id) >= 0;
-    var saved = State.userSaves.indexOf(a.id) >= 0;
+    var liked = State.userLikes.indexOf(a.id)>=0;
+    var saved = State.userSaves.indexOf(a.id)>=0;
 
-    document.getElementById('art-dlg-label').textContent = '// ' + a.source + ' · ' + a.category;
+    document.getElementById('art-dlg-label').textContent = '// '+a.source+' · '+a.category;
 
     var tags = '';
-    if (a.alertLevel) tags += '<span class="tag tag-alert-' + a.alertLevel + '">' + a.alertLevel + '</span>';
+    if (a.alertLevel) tags += '<span class="tag tag-alert-'+a.alertLevel+'">'+a.alertLevel+'</span>';
     if (a.featured)   tags += '<span class="tag tag-featured">★ FEATURED</span>';
 
-    var commentsHtml;
-    var cmts = a.comments || [];
-    if (cmts.length === 0) {
-      commentsHtml = '<div class="no-comments">// NO TRANSMISSIONS — 暂无评论</div>';
-    } else {
-      commentsHtml = cmts.map(function(c){
-        return '<div class="comment-item">' +
-          '<div class="comment-meta"><span class="comment-user">@' + esc(c.user) + '</span><span class="comment-time">' + formatDate(c.date) + '</span></div>' +
-          '<div class="comment-body">' + esc(c.text) + '</div>' +
-          '</div>';
-      }).join('');
-    }
+    var authorHtml = a.authorId
+      ? '<span class="art-author-link" data-uid="'+a.authorId+'" onclick="Profile.open(\''+a.authorId+'\');Dialog.close(\'dlg-article\')">@'+esc(a.authorName||'匿名')+'</span>'
+      : '';
+
+    var commentsHtml = Article._renderCommentTree(a.comments||[], a.id);
 
     var commentArea = State.currentUser
-      ? '<div class="comment-input-wrap">' +
-        '<textarea id="comment-ta" placeholder="发表你的战场分析…（Ctrl+Enter发送）" onkeydown="Article.commentKey(event,\'' + a.id + '\')"></textarea>' +
-        '<button class="btn-comment" onclick="Article.postComment(\'' + a.id + '\')">发送 ▶</button>' +
+      ? '<div class="comment-input-wrap">'+
+        '<textarea id="comment-ta" placeholder="发表评论… (Ctrl+Enter发送)" onkeydown="Article.commentKey(event,\''+a.id+'\')"></textarea>'+
+        '<button class="btn-comment" onclick="Article.postComment(\''+a.id+'\',null)">发送 ▶</button>'+
         '</div>'
       : '<div class="login-prompt"><a href="#" onclick="Dialog.close(\'dlg-article\');Dialog.open(\'dlg-login\')">登录</a> 后参与讨论</div>';
 
     document.getElementById('art-dlg-body').innerHTML =
-      '<div class="art-source-row">' +
-      '<span class="art-source-name">' + esc(a.source) + '</span>' + tags +
-      '<span class="tag-date">' + formatDate(a.date) + '</span>' +
-      '</div>' +
-      '<div class="art-title">' + esc(a.title) + '</div>' +
-      (a.desc ? '<div class="art-desc">' + esc(a.desc) + '</div>' : '') +
-      '<div class="art-actions">' +
-      '<a href="' + a.url + '" target="_blank" rel="noopener" class="btn-read">阅读原文 ↗</a>' +
-      '<button class="act-btn' + (liked?' is-liked':'') + '" id="modal-like-' + a.id + '" onclick="Interactions.like(\'' + a.id + '\',this)">♥ <span>' + a.likes + '</span> 点赞</button>' +
-      '<button class="act-btn' + (saved?' is-saved':'') + '" id="modal-save-' + a.id + '" onclick="Interactions.save(\'' + a.id + '\',this)">◈ <span>' + (a.saves||0) + '</span> 存档</button>' +
-      '</div>' +
-      '<div class="comments-section">' +
-      '<div class="comments-head">// TRANSMISSIONS · 评论 (' + cmts.length + ')</div>' +
-      commentArea +
-      commentsHtml +
+      '<div class="art-source-row">'+
+      '<span class="art-source-name">'+esc(a.source)+'</span>'+tags+authorHtml+
+      '<span class="tag-date">'+formatDate(a.date)+'</span>'+
+      '</div>'+
+      '<div class="art-title">'+esc(a.title)+'</div>'+
+      (a.desc?'<div class="art-desc">'+esc(a.desc)+'</div>':'')+
+      '<div class="art-actions">'+
+      '<a href="'+a.url+'" target="_blank" rel="noopener" class="btn-read">阅读原文 ↗</a>'+
+      '<button class="act-btn'+(liked?' is-liked':'')+'" id="modal-like-'+a.id+'" onclick="Interactions.like(\''+a.id+'\',this)">♥ <span>'+a.likes+'</span> 点赞</button>'+
+      '<button class="act-btn'+(saved?' is-saved':'')+'" id="modal-save-'+a.id+'" onclick="Interactions.save(\''+a.id+'\',this)">◈ <span>'+(a.saves||0)+'</span> 存档</button>'+
+      '</div>'+
+      '<div class="comments-section">'+
+      '<div class="comments-head">// TRANSMISSIONS · 评论 ('+(a.comments||[]).length+')</div>'+
+      commentArea+
+      '<div id="comment-tree">'+commentsHtml+'</div>'+
       '</div>';
   },
 
-  commentKey: function (e, id) {
-    if (e.ctrlKey && e.keyCode === 13) Article.postComment(id);
+  _renderCommentTree: function (comments, articleId) {
+    if (!comments||!comments.length) return '<div class="no-comments">// NO TRANSMISSIONS — 暂无评论</div>';
+    return comments.map(function(c){ return Article._renderComment(c, articleId, 0); }).join('');
   },
 
-  postComment: function (id) {
+  _renderComment: function (c, articleId, depth) {
+    var indent = Math.min(depth, 3) * 20;
+    var liked  = false; // already set on the object from backend
+    if (c.liked) liked = true;
+
+    var replyBtn = State.currentUser
+      ? '<button class="cmt-reply-btn" onclick="Article.startReply(\''+articleId+'\',\''+c.id+'\',\''+esc(c.user)+'\')">回复</button>'
+      : '';
+
+    var html = '<div class="comment-item" id="cmt-'+c.id+'" style="margin-left:'+indent+'px">'+
+      '<div class="comment-meta">'+
+      '<span class="comment-user" data-uid="'+c.userId+'" onclick="Profile.open(\''+c.userId+'\')">@'+esc(c.user)+'</span>'+
+      '<span class="comment-time">'+formatDate(c.date)+'</span>'+
+      '<button class="cmt-like-btn'+(liked?' is-liked':'')+'" data-article-id="'+articleId+'" data-comment-id="'+c.id+'">'+
+      '♥ <span class="cmt-like-count">'+(c.likes||0)+'</span></button>'+
+      replyBtn+
+      '</div>'+
+      '<div class="comment-body">'+esc(c.text)+'</div>'+
+      '</div>';
+
+    if (c.replies&&c.replies.length) {
+      html += c.replies.map(function(r){ return Article._renderComment(r, articleId, depth+1); }).join('');
+    }
+    return html;
+  },
+
+  commentKey: function (e, id) {
+    if (e.ctrlKey && e.keyCode===13) Article.postComment(id, null);
+  },
+
+  startReply: function (articleId, parentId, parentUser) {
+    // Insert an inline reply box under the parent comment
+    var existing = document.getElementById('inline-reply-'+parentId);
+    if (existing) { existing.remove(); return; }
+
+    var wrap = document.createElement('div');
+    wrap.id = 'inline-reply-'+parentId;
+    wrap.className = 'inline-reply-wrap';
+    wrap.style.marginLeft = '20px';
+    wrap.innerHTML =
+      '<div class="reply-to-label">回复 @'+esc(parentUser)+'</div>'+
+      '<div class="comment-input-wrap">'+
+      '<textarea id="reply-ta-'+parentId+'" placeholder="输入回复… (Ctrl+Enter)" '+
+      'onkeydown="Article.replyKey(event,\''+articleId+'\',\''+parentId+'\')"></textarea>'+
+      '<button class="btn-comment" onclick="Article.postComment(\''+articleId+'\',\''+parentId+'\')">发送 ▶</button>'+
+      '</div>';
+
+    var parentEl = document.getElementById('cmt-'+parentId);
+    if (parentEl) {
+      parentEl.after(wrap);
+      var ta = document.getElementById('reply-ta-'+parentId);
+      if (ta) ta.focus();
+    }
+  },
+
+  replyKey: function (e, articleId, parentId) {
+    if (e.ctrlKey && e.keyCode===13) Article.postComment(articleId, parentId);
+  },
+
+  postComment: function (id, parentId) {
     if (!State.currentUser) return;
-    var ta = document.getElementById('comment-ta');
+    var taId = parentId ? 'reply-ta-'+parentId : 'comment-ta';
+    var ta   = document.getElementById(taId);
     var text = ta ? ta.value.trim() : '';
     if (!text) { Toast.show('评论不能为空', true); return; }
-    API.postComment(id, State.currentUser.id, State.currentUser.username, text)
-      .then(function () {
+
+    API.postComment(id, State.currentUser.id, State.currentUser.username, text, parentId)
+      .then(function(){
+        // Remove inline reply box if replying
+        if (parentId) {
+          var box = document.getElementById('inline-reply-'+parentId);
+          if (box) box.remove();
+        }
         return API.getArticle(id).then(function(a){ Article._render(a); });
       })
-      .then(function () {
-        App.renderFeed();
-        App.renderStats();
+      .then(function(){
+        App.renderFeed(); App.renderStats();
         Toast.show('评论已发布 ▶');
+        Notifications.pollUnread();
       })
-      .catch(function(e){ Toast.show('发布失败：' + (e.message||''), true); });
+      .catch(function(e){ Toast.show('发布失败：'+(e.message||''), true); });
+  }
+};
+
+// Delegate comment like clicks
+document.addEventListener('click', function(e){
+  var btn = e.target.closest('.cmt-like-btn');
+  if (!btn) return;
+  e.stopPropagation();
+  var aid = btn.dataset.articleId, cid = btn.dataset.commentId;
+  if (aid && cid) Interactions.likeComment(aid, cid, btn);
+});
+
+/* ══════════════════════════════════════════════════════════
+   USER PROFILE
+   ══════════════════════════════════════════════════════════ */
+var Profile = {
+  open: function (uid) {
+    if (!uid) return;
+    Promise.all([
+      API.getProfile(uid),
+      API.getProfileArticles(uid),
+      API.getProfileComments(uid),
+    ]).then(function(res){
+      Profile._render(res[0], res[1]||[], res[2]||[]);
+      Dialog.open('dlg-profile');
+    }).catch(function(){ Toast.show('加载用户信息失败', true); });
+  },
+
+  _render: function (profile, articles, comments) {
+    var isSelf     = State.currentUser && State.currentUser.id === profile.id;
+    var isFollowing= profile.isFollowing;
+
+    var followBtn = '';
+    if (State.currentUser && !isSelf) {
+      followBtn = '<button class="btn-follow'+(isFollowing?' is-following':'')+'" id="follow-btn-'+profile.id+'" '+
+        'onclick="Profile.toggleFollow(\''+profile.id+'\')">'+(isFollowing?'✓ 已关注':'＋ 关注')+'</button>';
+    }
+
+    var articlesHtml = articles.length
+      ? articles.map(function(a){
+          return '<div class="profile-article-item" onclick="Dialog.close(\'dlg-profile\');Article.open(\''+a.id+'\')">'+
+            '<span class="profile-art-emoji">'+(a.emoji||'📰')+'</span>'+
+            '<div><div class="profile-art-title">'+esc(a.title)+'</div>'+
+            '<div class="profile-art-meta">'+esc(a.source)+' · '+formatDate(a.date)+' · ♥ '+a.likes+'</div></div>'+
+            '</div>';
+        }).join('')
+      : '<div class="profile-empty">暂无发布内容</div>';
+
+    var commentsHtml = comments.length
+      ? comments.map(function(c){
+          return '<div class="profile-comment-item" onclick="Dialog.close(\'dlg-profile\');Article.open(\''+c.articleId+'\')">'+
+            '<div class="profile-cmt-article">↳ '+esc(c.articleTitle)+'</div>'+
+            '<div class="profile-cmt-body">'+esc(c.text)+'</div>'+
+            '<div class="profile-cmt-meta">'+formatDate(c.date)+' · ♥ '+c.likes+'</div>'+
+            '</div>';
+        }).join('')
+      : '<div class="profile-empty">暂无评论记录</div>';
+
+    document.getElementById('dlg-profile-body').innerHTML =
+      '<div class="profile-header">'+
+      '<div class="profile-avatar">'+profile.username[0].toUpperCase()+'</div>'+
+      '<div class="profile-info">'+
+      '<div class="profile-username">'+esc(profile.username)+'</div>'+
+      '<div class="profile-stats-row">'+
+      '<span class="profile-stat"><strong>'+profile.followers+'</strong> 粉丝</span>'+
+      '<span class="profile-stat"><strong>'+profile.following+'</strong> 关注</span>'+
+      '<span class="profile-stat"><strong>'+profile.articleCount+'</strong> 文章</span>'+
+      '</div>'+
+      '<div class="profile-join">注册于 '+formatDate(profile.joinDate)+'</div>'+
+      '</div>'+
+      followBtn+
+      '</div>'+
+      '<div class="profile-section-head">// 发布的文章</div>'+
+      '<div class="profile-articles-list">'+articlesHtml+'</div>'+
+      '<div class="profile-section-head">// 评论记录</div>'+
+      '<div class="profile-comments-list">'+commentsHtml+'</div>';
+  },
+
+  toggleFollow: function (uid) {
+    if (!State.currentUser) { Toast.show('请先登录', true); Dialog.open('dlg-login'); return; }
+    API.toggleFollow(uid).then(function(r){
+      var btn = document.getElementById('follow-btn-'+uid);
+      if (btn) {
+        btn.className = 'btn-follow'+(r.following?' is-following':'');
+        btn.textContent = r.following ? '✓ 已关注' : '＋ 关注';
+      }
+      Toast.show(r.following ? '已关注' : '已取消关注');
+      Notifications.pollUnread();
+    }).catch(function(){ Toast.show('操作失败', true); });
+  }
+};
+
+/* ══════════════════════════════════════════════════════════
+   NOTIFICATIONS
+   ══════════════════════════════════════════════════════════ */
+var Notifications = {
+  _timer: null,
+
+  start: function () {
+    Notifications.pollUnread();
+    Notifications._timer = setInterval(Notifications.pollUnread, 30000);
+  },
+
+  stop: function () {
+    if (Notifications._timer) clearInterval(Notifications._timer);
+  },
+
+  pollUnread: function () {
+    if (!State.currentUser) return;
+    API.getUnreadCount().then(function(r){
+      State.unreadCount = r.count||0;
+      Notifications._renderBadge();
+    }).catch(function(){});
+  },
+
+  _renderBadge: function () {
+    var badge = document.getElementById('notif-badge');
+    if (!badge) return;
+    if (State.unreadCount > 0) {
+      badge.textContent = State.unreadCount > 99 ? '99+' : State.unreadCount;
+      badge.hidden = false;
+    } else {
+      badge.hidden = true;
+    }
+  },
+
+  open: function () {
+    if (!State.currentUser) { Toast.show('请先登录', true); Dialog.open('dlg-login'); return; }
+    API.getNotifications().then(function(items){
+      Notifications._render(items||[]);
+      Dialog.open('dlg-notifications');
+      // Mark all read after opening
+      API.markAllRead().then(function(){
+        State.unreadCount = 0;
+        Notifications._renderBadge();
+      });
+    }).catch(function(){ Toast.show('加载通知失败', true); });
+  },
+
+  _render: function (items) {
+    var typeLabel = {
+      'follow':       '关注了你',
+      'comment':      '评论了你的文章',
+      'reply':        '回复了你的评论',
+      'like_article': '点赞了你的文章',
+      'like_comment': '点赞了你的评论',
+      'save':         '收藏了你的文章',
+    };
+
+    var html = items.length ? items.map(function(n){
+      var label = typeLabel[n.type] || n.type;
+      var link  = '';
+      if (n.articleId) {
+        link = '<button class="notif-link" onclick="Dialog.close(\'dlg-notifications\');Article.open(\''+n.articleId+'\''+(n.commentId?',true':'')+')">查看 →</button>';
+      }
+      return '<div class="notif-item'+(n.isRead?'':' is-unread')+'">'+
+        '<div class="notif-meta">'+
+        '<span class="notif-actor" onclick="Profile.open(\''+n.actorId+'\')">@'+esc(n.actorName)+'</span>'+
+        '<span class="notif-action">'+label+'</span>'+
+        '<span class="notif-time">'+formatDate(n.date)+'</span>'+
+        '</div>'+
+        link+
+        '</div>';
+    }).join('') : '<div class="notif-empty">// 暂无通知</div>';
+
+    document.getElementById('notif-list').innerHTML = html;
   }
 };
 
@@ -449,41 +673,35 @@ var Auth = {
     var area = document.getElementById('auth-area');
     if (!State.currentUser) {
       area.innerHTML =
-        '<button class="btn-sm btn-sm-ghost" id="btn-login">登录</button>' +
+        '<button class="btn-sm btn-sm-ghost" id="btn-login">登录</button>'+
         '<button class="btn-sm btn-sm-red" id="btn-signup">注册</button>';
       document.getElementById('btn-login').addEventListener('click', function(){ Dialog.open('dlg-login'); });
       document.getElementById('btn-signup').addEventListener('click', function(){ Dialog.open('dlg-signup'); });
+      Notifications.stop();
     } else {
       var u = State.currentUser;
-      // All logged-in users can publish; admins additionally get full admin panel
-      var publishBtn = '<button class="btn-sm btn-sm-ghost" id="btn-publish-quick">＋ 发布</button>';
-      var adminBtn = u.isAdmin
-        ? '<button class="btn-sm btn-sm-admin" id="btn-admin">管理后台</button>'
-        : '';
+      var adminBtn = u.isAdmin ? '<button class="btn-sm btn-sm-admin" id="btn-admin">管理后台</button>' : '';
       area.innerHTML =
-        publishBtn +
-        adminBtn +
-        '<button class="btn-sm btn-sm-ghost" id="btn-user-panel">' + u.username[0].toUpperCase() + '</button>';
+        '<button class="btn-sm btn-sm-ghost" id="btn-publish-quick">＋ 发布</button>'+
+        adminBtn+
+        '<button class="btn-sm btn-sm-ghost notif-btn" id="btn-notif">'+
+        '🔔 <span id="notif-badge" hidden></span></button>'+
+        '<button class="btn-sm btn-sm-ghost" id="btn-user-panel">'+u.username[0].toUpperCase()+'</button>';
 
       document.getElementById('btn-publish-quick').addEventListener('click', function(){
-        // All users open the publish panel (admins get full admin modal, users get simple publish modal)
-        if (u.isAdmin) {
-          Admin.open();
-        } else {
-          Admin.openPublishOnly();
-        }
+        u.isAdmin ? Admin.open() : Admin.openPublishOnly();
       });
-      if (u.isAdmin) {
-        document.getElementById('btn-admin').addEventListener('click', Admin.open);
-      }
+      if (u.isAdmin) document.getElementById('btn-admin').addEventListener('click', Admin.open);
+      document.getElementById('btn-notif').addEventListener('click', Notifications.open);
       document.getElementById('btn-user-panel').addEventListener('click', function(){
         document.getElementById('user-panel-info').innerHTML =
-          '<strong>操作员：</strong>' + esc(u.username) + '<br>' +
-          '<strong>邮&emsp;箱：</strong>' + esc(u.email) + '<br>' +
-          '<strong>权&emsp;限：</strong>' + (u.isAdmin ? '管理员' : '普通用户') + '<br>' +
-          '<strong>注册于：</strong>' + formatDate(u.joinDate);
+          '<strong>操作员：</strong>'+esc(u.username)+'<br>'+
+          '<strong>邮&emsp;箱：</strong>'+esc(u.email)+'<br>'+
+          '<strong>权&emsp;限：</strong>'+(u.isAdmin?'管理员':'普通用户')+'<br>'+
+          '<strong>注册于：</strong>'+formatDate(u.joinDate);
         Dialog.open('dlg-user');
       });
+      Notifications.start();
     }
   },
 
@@ -492,22 +710,17 @@ var Auth = {
     var pw    = document.getElementById('login-password').value;
     var err   = document.getElementById('login-err');
     err.hidden = true;
-    API.login(email, pw).then(function (r) {
+    API.login(email, pw).then(function(r){
       State.currentUser = r.user;
-      return Promise.all([
-        API.getUserLikes(r.user.id),
-        API.getUserSaves(r.user.id)
-      ]);
+      return Promise.all([API.getUserLikes(r.user.id), API.getUserSaves(r.user.id)]);
     }).then(function(results){
-      State.userLikes = results[0];
-      State.userSaves = results[1];
+      State.userLikes = results[0]||[];
+      State.userSaves = results[1]||[];
       Dialog.close('dlg-login');
       Auth.renderHeader();
       App.refresh();
-      Toast.show('欢迎回来，' + State.currentUser.username);
-    }).catch(function (e) {
-      if (e.code === 'BAD_CREDENTIALS' || e.message) err.hidden = false;
-    });
+      Toast.show('欢迎回来，'+State.currentUser.username);
+    }).catch(function(){ err.hidden = false; });
   },
 
   doSignup: function () {
@@ -516,27 +729,24 @@ var Auth = {
     var pw    = document.getElementById('signup-password').value;
     var err   = document.getElementById('signup-err');
     err.hidden = true;
-    if (!uname || !email || !pw) { Toast.show('请填写所有字段', true); return; }
-    if (pw.length < 6) { Toast.show('密码至少6位', true); return; }
-    API.signup(uname, email, pw).then(function (r) {
+    if (!uname||!email||!pw){ Toast.show('请填写所有字段',true); return; }
+    if (pw.length<6){ Toast.show('密码至少6位',true); return; }
+    API.signup(uname, email, pw).then(function(r){
       State.currentUser = r.user;
-      State.userLikes = [];
-      State.userSaves = [];
+      State.userLikes=[]; State.userSaves=[];
       Dialog.close('dlg-signup');
       Auth.renderHeader();
       App.refresh();
-      Toast.show('欢迎加入，' + r.user.username + (r.user.isAdmin ? '（已设为管理员）' : '') + ' ✓');
-    }).catch(function (e) {
-      if (e.code === 'EMAIL_EXISTS') err.hidden = false;
-      else Toast.show('注册失败', true);
+      Toast.show('欢迎加入，'+r.user.username+(r.user.isAdmin?'（管理员）':'')+' ✓');
+    }).catch(function(e){
+      if(e.code==='EMAIL_EXISTS') err.hidden=false;
+      else Toast.show('注册失败',true);
     });
   },
 
   doLogout: function () {
-    API.logout().then(function () {
-      State.currentUser = null;
-      State.userLikes = [];
-      State.userSaves = [];
+    API.logout().then(function(){
+      State.currentUser=null; State.userLikes=[]; State.userSaves=[];
       Dialog.close('dlg-user');
       Auth.renderHeader();
       App.refresh();
@@ -550,49 +760,41 @@ var Auth = {
    ══════════════════════════════════════════════════════════ */
 var Admin = {
   open: function () {
-    if (!State.currentUser || !State.currentUser.isAdmin) {
-      Toast.show('权限不足', true); return;
-    }
+    if (!State.currentUser||!State.currentUser.isAdmin){ Toast.show('权限不足',true); return; }
     Admin._refreshCatSelect();
     Admin.switchTab('publish');
     Dialog.open('dlg-admin');
   },
 
-  // Non-admin users see a simplified publish dialog (reuses same modal, publish tab only)
   openPublishOnly: function () {
-    if (!State.currentUser) { Toast.show('请先登录', true); return; }
+    if (!State.currentUser){ Toast.show('请先登录',true); return; }
     Admin._refreshCatSelect();
-    // Show only publish tab, hide manage/cats tabs for non-admins
     var u = State.currentUser;
     document.querySelectorAll('.admin-tab').forEach(function(btn){
-      if (btn.dataset.tab !== 'publish') {
-        btn.style.display = u.isAdmin ? '' : 'none';
-      }
+      if (btn.dataset.tab!=='publish') btn.style.display = u.isAdmin?'':'none';
     });
-    // Hide featured checkbox for non-admins (backend enforces this too)
     var featRow = document.getElementById('pub-featured');
-    if (featRow) featRow.closest('.field-group').style.display = u.isAdmin ? '' : 'none';
-    // Hide BREAKING alert option for non-admins
+    if (featRow) featRow.closest('.field-group').style.display = u.isAdmin?'':'none';
     Admin.switchTab('publish');
     Dialog.open('dlg-admin');
   },
 
   switchTab: function (tab) {
     document.querySelectorAll('.admin-tab').forEach(function(btn){
-      btn.classList.toggle('active', btn.dataset.tab === tab);
+      btn.classList.toggle('active', btn.dataset.tab===tab);
     });
     document.querySelectorAll('.atab-panel').forEach(function(panel){
-      panel.hidden = panel.id !== 'atab-' + tab;
+      panel.hidden = panel.id!=='atab-'+tab;
     });
-    if (tab === 'manage') Admin._renderManage();
-    if (tab === 'cats')   Admin._renderCats();
+    if (tab==='manage') Admin._renderManage();
+    if (tab==='cats')   Admin._renderCats();
   },
 
   _refreshCatSelect: function () {
     API.getTabs().then(function(tabs){
       var sel = document.getElementById('pub-category');
-      sel.innerHTML = tabs.filter(function(t){ return t !== '全部'; })
-        .map(function(t){ return '<option value="' + t + '">' + t + '</option>'; }).join('');
+      sel.innerHTML = (tabs||[]).filter(function(t){return t!=='全部';})
+        .map(function(t){return '<option value="'+t+'">'+t+'</option>';}).join('');
     });
   },
 
@@ -602,51 +804,36 @@ var Admin = {
     var url      = document.getElementById('pub-url').value.trim();
     var category = document.getElementById('pub-category').value;
     var desc     = document.getElementById('pub-desc').value.trim();
-    var emoji    = document.getElementById('pub-emoji').value.trim() || '📡';
+    var emoji    = document.getElementById('pub-emoji').value.trim()||'📡';
     var alert    = document.getElementById('pub-alert').value;
     var featured = document.getElementById('pub-featured').checked;
-
-    if (!title || !source || !url || !category) {
-      Toast.show('请填写所有必填项', true); return;
-    }
-
-    API.publishArticle({ title, source, url, category, desc, emoji,
-                         alertLevel: alert, featured })
-      .then(function () {
+    if (!title||!source||!url||!category){ Toast.show('请填写所有必填项',true); return; }
+    API.publishArticle({title,source,url,category,desc,emoji,alertLevel:alert,featured})
+      .then(function(){
         ['pub-title','pub-source','pub-url','pub-desc','pub-emoji'].forEach(function(id){
-          document.getElementById(id).value = '';
+          document.getElementById(id).value='';
         });
-        document.getElementById('pub-alert').value = '';
-        document.getElementById('pub-featured').checked = false;
+        document.getElementById('pub-alert').value='';
+        document.getElementById('pub-featured').checked=false;
         Dialog.close('dlg-admin');
         App.refresh();
-        Ticker.init();
         Toast.show('战报已发布 ✓');
-      }).catch(function(e){ Toast.show('发布失败：' + (e.message||''), true); });
+      }).catch(function(e){ Toast.show('发布失败：'+(e.message||''),true); });
   },
 
   _renderManage: function () {
     API.getArticles({}).then(function(arts){
       var el = document.getElementById('manage-list');
-      if (!arts.length) {
-        el.innerHTML = '<div style="padding:20px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--text-dim)">// EMPTY</div>';
-        return;
-      }
+      if (!arts||!arts.length){ el.innerHTML='<div style="padding:20px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--text-dim)">// EMPTY</div>'; return; }
       el.innerHTML = arts.map(function(a){
-        return '<div class="manage-row">' +
-          '<div class="manage-title"><span class="manage-src">' + esc(a.source) + '</span>' + esc(a.title) + '</div>' +
-          '<button class="btn-del" data-del-id="' + a.id + '">DELETE</button>' +
-          '</div>';
+        return '<div class="manage-row">'+
+          '<div class="manage-title"><span class="manage-src">'+esc(a.source)+'</span>'+esc(a.title)+'</div>'+
+          '<button class="btn-del" data-del-id="'+a.id+'">DELETE</button></div>';
       }).join('');
       el.querySelectorAll('[data-del-id]').forEach(function(btn){
         btn.addEventListener('click', function(){
-          if (!confirm('确认删除这篇战报？')) return;
-          API.deleteArticle(btn.dataset.delId).then(function(){
-            App.refresh();
-            Ticker.init();
-            Admin._renderManage();
-            Toast.show('已删除');
-          });
+          if (!confirm('确认删除？')) return;
+          API.deleteArticle(btn.dataset.delId).then(function(){ App.refresh(); Admin._renderManage(); Toast.show('已删除'); });
         });
       });
     });
@@ -655,21 +842,16 @@ var Admin = {
   _renderCats: function () {
     API.getTabs().then(function(tabs){
       var el = document.getElementById('cats-manage-list');
-      el.innerHTML = tabs.filter(function(t){ return t !== '全部'; }).map(function(t){
-        return '<div class="manage-row">' +
-          '<div class="manage-title">' + t + '</div>' +
-          '<button class="btn-del" data-del-tab="' + t + '">DELETE</button>' +
-          '</div>';
+      el.innerHTML = (tabs||[]).filter(function(t){return t!=='全部';}).map(function(t){
+        return '<div class="manage-row"><div class="manage-title">'+t+'</div>'+
+          '<button class="btn-del" data-del-tab="'+t+'">DELETE</button></div>';
       }).join('');
       el.querySelectorAll('[data-del-tab]').forEach(function(btn){
         btn.addEventListener('click', function(){
-          if (!confirm('删除分类「' + btn.dataset.delTab + '」？')) return;
+          if (!confirm('删除分类「'+btn.dataset.delTab+'」？')) return;
           API.deleteTab(btn.dataset.delTab).then(function(){
-            if (State.currentTab === btn.dataset.delTab) State.currentTab = '全部';
-            App.refresh();
-            Admin._renderCats();
-            Admin._refreshCatSelect();
-            Toast.show('分类已删除');
+            if (State.currentTab===btn.dataset.delTab) State.currentTab='全部';
+            App.refresh(); Admin._renderCats(); Admin._refreshCatSelect(); Toast.show('分类已删除');
           });
         });
       });
@@ -682,11 +864,9 @@ var Admin = {
    ══════════════════════════════════════════════════════════ */
 var Dialog = {
   initAll: function () {
-    // Close buttons
     document.querySelectorAll('[data-close]').forEach(function(btn){
       btn.addEventListener('click', function(){ Dialog.close(btn.dataset.close); });
     });
-    // Switch links
     document.querySelectorAll('[data-open]').forEach(function(a){
       a.addEventListener('click', function(e){
         e.preventDefault();
@@ -694,55 +874,36 @@ var Dialog = {
         Dialog.open(a.dataset.open);
       });
     });
-    // Backdrop
-    var bd = document.getElementById('backdrop');
-    bd.addEventListener('click', Dialog.closeAll);
-    // Admin tab buttons
+    document.getElementById('backdrop').addEventListener('click', Dialog.closeAll);
     document.querySelectorAll('.admin-tab').forEach(function(btn){
       btn.addEventListener('click', function(){ Admin.switchTab(btn.dataset.tab); });
     });
-    // Auth buttons
     document.getElementById('btn-do-login').addEventListener('click', Auth.doLogin);
     document.getElementById('btn-do-signup').addEventListener('click', Auth.doSignup);
     document.getElementById('btn-logout').addEventListener('click', Auth.doLogout);
     document.getElementById('btn-publish').addEventListener('click', Admin.publish);
-    // Add cat
     document.getElementById('btn-add-cat').addEventListener('click', function(){
-      var inp = document.getElementById('new-cat');
+      var inp  = document.getElementById('new-cat');
       var name = inp.value.trim();
       if (!name) return;
       API.addTab(name).then(function(){
-        inp.value = '';
-        App.refresh();
-        Admin._renderCats();
-        Admin._refreshCatSelect();
-        Toast.show('分类「' + name + '」已添加');
-      }).catch(function(e){
-        Toast.show(e.code === 'TAB_EXISTS' ? '该分类已存在' : '操作失败', true);
-      });
+        inp.value=''; App.refresh(); Admin._renderCats(); Admin._refreshCatSelect();
+        Toast.show('分类「'+name+'」已添加');
+      }).catch(function(e){ Toast.show(e.code==='TAB_EXISTS'?'该分类已存在':'操作失败',true); });
     });
-    // Search
     document.getElementById('search-input').addEventListener('input', function(){
-      State.searchQuery = this.value.trim();
-      App.renderFeed();
+      State.searchQuery = this.value.trim(); App.renderFeed();
     });
     document.getElementById('search-btn').addEventListener('click', function(){
-      State.searchQuery = document.getElementById('search-input').value.trim();
-      App.renderFeed();
+      State.searchQuery = document.getElementById('search-input').value.trim(); App.renderFeed();
     });
-    // Keyboard
-    document.addEventListener('keydown', function(e){
-      if (e.key === 'Escape') Dialog.closeAll();
-    });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') Dialog.closeAll(); });
   },
 
   open: function (id) {
     var dlg = document.getElementById(id);
     if (!dlg) return;
-    // Close any other open dialogs first
-    document.querySelectorAll('.dialog.is-open').forEach(function(d){
-      if (d.id !== id) d.classList.remove('is-open');
-    });
+    document.querySelectorAll('.dialog.is-open').forEach(function(d){ if(d.id!==id) d.classList.remove('is-open'); });
     document.getElementById('backdrop').hidden = false;
     dlg.classList.add('is-open');
   },
@@ -750,9 +911,7 @@ var Dialog = {
   close: function (id) {
     var dlg = document.getElementById(id);
     if (dlg) dlg.classList.remove('is-open');
-    if (!document.querySelector('.dialog.is-open')) {
-      document.getElementById('backdrop').hidden = true;
-    }
+    if (!document.querySelector('.dialog.is-open')) document.getElementById('backdrop').hidden = true;
   },
 
   closeAll: function () {
@@ -767,42 +926,34 @@ var Dialog = {
 var Toast = {
   show: function (msg, isErr) {
     var box = document.getElementById('toast-container');
-    var el = document.createElement('div');
-    el.className = 'toast' + (isErr ? ' err' : '');
+    var el  = document.createElement('div');
+    el.className = 'toast'+(isErr?' err':'');
     el.textContent = msg;
     box.appendChild(el);
     requestAnimationFrame(function(){ requestAnimationFrame(function(){ el.classList.add('show'); }); });
     setTimeout(function(){
       el.classList.remove('show');
-      setTimeout(function(){ if (el.parentNode) el.parentNode.removeChild(el); }, 250);
+      setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 250);
     }, 2800);
   }
 };
 
 /* ══════════════════════════════════════════════════════════
-   UTILITIES
+   UTILS
    ══════════════════════════════════════════════════════════ */
 function esc(s) {
   if (!s) return '';
-  return String(s)
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
 function formatDate(iso) {
   if (!iso) return '';
-  var d = new Date(iso);
-  var now = new Date();
-  var diff = Math.floor((now - d) / 1000);
-  if (diff < 60)    return '刚刚';
-  if (diff < 3600)  return Math.floor(diff / 60)   + '分钟前';
-  if (diff < 86400) return Math.floor(diff / 3600)  + '小时前';
-  if (diff < 604800)return Math.floor(diff / 86400) + '天前';
-  var pad = function(n){ return n<10?'0'+n:n; };
-  return d.getUTCFullYear() + '-' + pad(d.getUTCMonth()+1) + '-' + pad(d.getUTCDate());
+  var d = new Date(iso), now = new Date();
+  var diff = Math.floor((now-d)/1000);
+  if (diff<60)     return '刚刚';
+  if (diff<3600)   return Math.floor(diff/60)+'分钟前';
+  if (diff<86400)  return Math.floor(diff/3600)+'小时前';
+  if (diff<604800) return Math.floor(diff/86400)+'天前';
+  var pad=function(n){return n<10?'0'+n:n;};
+  return d.getUTCFullYear()+'-'+pad(d.getUTCMonth()+1)+'-'+pad(d.getUTCDate());
 }
-
-// 全局函数桥接，供 HTML 内联事件调用
 function switchTab(tab) { App.switchTab(tab); }
