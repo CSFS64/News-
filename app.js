@@ -708,23 +708,24 @@ var Dialog = {
   open: function (id) {
     var dlg = document.getElementById(id);
     if (!dlg) return;
+    // Close any other open dialogs first
+    document.querySelectorAll('.dialog.is-open').forEach(function(d){
+      if (d.id !== id) d.classList.remove('is-open');
+    });
     document.getElementById('backdrop').hidden = false;
-    dlg.removeAttribute('hidden');
-    dlg.style.display = '';
-    dlg.setAttribute('open', '');
+    dlg.classList.add('is-open');
   },
 
   close: function (id) {
     var dlg = document.getElementById(id);
-    if (dlg) { dlg.removeAttribute('open'); dlg.hidden = true; }
-    // Hide backdrop if no dialogs open
-    if (!document.querySelector('.dialog[open]')) {
+    if (dlg) dlg.classList.remove('is-open');
+    if (!document.querySelector('.dialog.is-open')) {
       document.getElementById('backdrop').hidden = true;
     }
   },
 
   closeAll: function () {
-    document.querySelectorAll('.dialog[open]').forEach(function(d){ d.removeAttribute('open'); d.hidden = true; });
+    document.querySelectorAll('.dialog.is-open').forEach(function(d){ d.classList.remove('is-open'); });
     document.getElementById('backdrop').hidden = true;
   }
 };
