@@ -266,6 +266,25 @@ dialog::backdrop { background: transparent; }
   border-color: var(--red);
   color: #fff;
 }
+#btn-user-panel {
+  background: var(--olive);
+  border-color: var(--olive-light);
+  color: var(--text-bright);
+  font-family: var(--head);
+  font-weight: 700;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#btn-user-panel:hover {
+  background: var(--text-bright);
+  border-color: var(--text-bright);
+  color: var(--olive);
+}
 .btn-sm-red:hover { background: var(--red-hot); border-color: var(--red-hot); }
 .btn-sm-admin {
   background: var(--amber-dim);
