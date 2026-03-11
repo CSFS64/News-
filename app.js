@@ -567,8 +567,8 @@ var Profile = {
   },
 
   _render: function (profile, articles, comments) {
-    var isSelf     = State.currentUser && State.currentUser.id === profile.id;
-    var isFollowing= profile.isFollowing;
+    var isSelf      = State.currentUser && State.currentUser.id === profile.id;
+    var isFollowing = profile.isFollowing;
 
     var followBtn = '';
     if (State.currentUser && !isSelf) {
@@ -578,26 +578,29 @@ var Profile = {
 
     var articlesHtml = articles.length
       ? articles.map(function(a){
-          return '<div class="profile-article-item" onclick="Dialog.close(\'dlg-profile\');Article.open(\''+a.id+'\')">'+
+          return '<div class="upanel-item">'+
+            '<div class="upanel-item-main" onclick="Dialog.close(\'dlg-profile\');Article.open(\''+a.id+'\')">'+
             '<span class="profile-art-emoji">'+(a.emoji||'📰')+'</span>'+
             '<div><div class="profile-art-title">'+esc(a.title)+'</div>'+
             '<div class="profile-art-meta">'+esc(a.source)+' · '+formatDate(a.date)+' · ♥ '+a.likes+'</div></div>'+
-            '</div>';
+            '</div></div>';
         }).join('')
-      : '<div class="profile-empty">暂无发布内容</div>';
+      : '<div class="profile-empty" style="padding:20px">暂无发布内容</div>';
 
     var commentsHtml = comments.length
       ? comments.map(function(c){
-          return '<div class="profile-comment-item" onclick="Dialog.close(\'dlg-profile\');Article.open(\''+c.articleId+'\')">'+
+          return '<div class="upanel-item">'+
+            '<div class="upanel-item-main" onclick="Dialog.close(\'dlg-profile\');Article.open(\''+c.articleId+'\')">'+
             '<div class="profile-cmt-article">↳ '+esc(c.articleTitle)+'</div>'+
             '<div class="profile-cmt-body">'+esc(c.text)+'</div>'+
             '<div class="profile-cmt-meta">'+formatDate(c.date)+' · ♥ '+c.likes+'</div>'+
-            '</div>';
+            '</div></div>';
         }).join('')
-      : '<div class="profile-empty">暂无评论记录</div>';
+      : '<div class="profile-empty" style="padding:20px">暂无评论记录</div>';
 
     document.getElementById('dlg-profile-body').innerHTML =
-      '<div class="profile-header">'+
+      '<div style="padding:16px 20px;border-bottom:1px solid var(--border)">'+
+      '<div style="display:flex;align-items:center;gap:12px">'+
       '<div class="profile-avatar">'+profile.username[0].toUpperCase()+'</div>'+
       '<div class="profile-info">'+
       '<div class="profile-username">'+esc(profile.username)+'</div>'+
@@ -609,11 +612,21 @@ var Profile = {
       '<div class="profile-join">注册于 '+formatDate(profile.joinDate)+'</div>'+
       '</div>'+
       followBtn+
+      '</div></div>'+
+      '<div style="display:flex;border-bottom:1px solid var(--border)">'+
+      '<button class="upanel-tab active" onclick="Profile._switchTab(\'articles\',this)">发布的文章</button>'+
+      '<button class="upanel-tab" onclick="Profile._switchTab(\'comments\',this)">评论记录</button>'+
       '</div>'+
-      '<div class="profile-section-head">// 发布的文章</div>'+
-      '<div class="profile-articles-list">'+articlesHtml+'</div>'+
-      '<div class="profile-section-head">// 评论记录</div>'+
-      '<div class="profile-comments-list">'+commentsHtml+'</div>';
+      '<div id="profile-tab-articles" style="padding:8px 0">'+articlesHtml+'</div>'+
+      '<div id="profile-tab-comments" style="padding:8px 0;display:none">'+commentsHtml+'</div>';
+  },
+
+  _switchTab: function (tab, btn) {
+    document.getElementById('profile-tab-articles').style.display = tab==='articles' ? 'block' : 'none';
+    document.getElementById('profile-tab-comments').style.display = tab==='comments' ? 'block' : 'none';
+    btn.closest('div').querySelectorAll('.upanel-tab').forEach(function(b){
+      b.classList.toggle('active', b === btn);
+    });
   },
 
   toggleFollow: function (uid) {
