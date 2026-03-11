@@ -6,25 +6,25 @@
 
 /* ── TOKENS ── */
 :root {
-  --bg:          #0c0d0a;
-  --bg2:         #111310;
-  --bg3:         #171914;
-  --bg4:         #1e2019;
-  --panel:       #161812;
-  --border:      #272b1e;
-  --border2:     #363b28;
+  --bg:          #0e0f0b;
+  --bg2:         #141510;
+  --bg3:         #1a1c15;
+  --bg4:         #212318;
+  --panel:       #181a13;
+  --border:      #2e3024;
+  --border2:     #3d4030;
   --olive:       #4a5230;
   --olive-light: #6b7542;
-  --olive-dim:   #323820;
+  --olive-dim:   #3a4026;
   --red:         #c0392b;
   --red-hot:     #e84040;
-  --red-dim:     #6b1a12;
-  --red-glow:    rgba(192,57,43,0.15);
+  --red-dim:     #7a1a10;
+  --red-glow:    rgba(192,57,43,0.18);
   --amber:       #d4800a;
-  --amber-dim:   rgba(212,128,10,0.12);
-  --text:        #c4c6b4;
-  --text-dim:    #646658;
-  --text-bright: #e4e6d4;
+  --amber-dim:   rgba(212,128,10,0.15);
+  --text:        #c8c9b8;
+  --text-dim:    #6e7060;
+  --text-bright: #e8e9d8;
   --mono:        'Share Tech Mono', monospace;
   --head:        'Oswald', sans-serif;
   --body:        'Source Serif 4', Georgia, serif;
