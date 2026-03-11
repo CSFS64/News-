@@ -1441,3 +1441,22 @@ dialog::backdrop { background: transparent; }
   line-height: 1.5;
   width: 100%;
 }
+
+/* ── Reply-to prefix in comments ── */
+.cmt-reply-to { font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
+.cmt-reply-target { color: var(--olive-light); font-weight: 700; }
+
+/* ── Notification content preview ── */
+.notif-preview {
+  font-family: var(--body);
+  font-size: 12px;
+  color: var(--text-dim);
+  margin: 3px 0 5px;
+  padding: 4px 8px;
+  background: var(--bg3);
+  border-left: 2px solid var(--border2);
+  border-radius: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
