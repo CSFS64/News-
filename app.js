@@ -593,7 +593,7 @@ var Profile = {
           return '<div class="profile-card" onclick="Dialog.close(\'dlg-profile\');Article.open(\''+c.articleId+'\')">'+
             '<span class="profile-card-emoji">💬</span>'+
             '<div class="profile-card-body">'+
-            '<div class="profile-cmt-article">'+esc(c.articleTitle)+'</div>'+
+            '<div class="profile-cmt-article">'+(c.parentId ? '回复 @'+esc(c.parentUsername) : '评论了《'+esc(c.articleTitle)+'》')+'</div>'+
             '<div class="profile-card-preview">'+esc(c.text)+'</div>'+
             '<div class="profile-cmt-meta">'+formatDate(c.date)+' · ♥ '+c.likes+'</div>'+
             '</div></div>';
@@ -904,7 +904,7 @@ var UserPanel = {
             '<div style="display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0" onclick="Dialog.close(\'dlg-user\');Article.open(\''+c.articleId+'\')">'+
             '<span class="profile-card-emoji">💬</span>'+
             '<div class="profile-card-body">'+
-            '<div class="profile-cmt-article">'+esc(c.articleTitle)+'</div>'+
+            '<div class="profile-cmt-article">'+(c.parentId ? '回复 @'+esc(c.parentUsername) : '评论了《'+esc(c.articleTitle)+'》')+'</div>'+
             '<div class="profile-card-preview">'+esc(c.text)+'</div>'+
             '<div class="profile-cmt-meta">'+formatDate(c.date)+'</div>'+
             '</div></div>'+
