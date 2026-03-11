@@ -192,6 +192,56 @@
     </div>
   </div>
 
+  <!-- PUBLISH (普通用户) -->
+  <div id="dlg-publish" class="dialog dialog-wide">
+    <div class="dlg-head">
+      <span class="dlg-title">发布文章</span>
+      <button class="dlg-close" data-close="dlg-publish">✕</button>
+    </div>
+    <div class="dlg-body">
+      <div class="form-grid">
+        <div class="field-group span2">
+          <label class="field-label">标题 <span class="req">*</span></label>
+          <input type="text" id="pub2-title" class="field-input" placeholder="文章标题" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">来源媒体 <span class="req">*</span></label>
+          <input type="text" id="pub2-source" class="field-input" placeholder="Reuters / BBC / 新华社…" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">分类 <span class="req">*</span></label>
+          <select id="pub2-category" class="field-select"></select>
+        </div>
+        <div class="field-group span2">
+          <label class="field-label">原文链接 <span class="req">*</span></label>
+          <input type="url" id="pub2-url" class="field-input" placeholder="https://…" />
+        </div>
+        <div class="field-group span2">
+          <label class="field-label">摘要</label>
+          <textarea id="pub2-desc" class="field-textarea" rows="3" placeholder="简短摘要…"></textarea>
+        </div>
+        <div class="field-group">
+          <label class="field-label">图标 Emoji</label>
+          <input type="text" id="pub2-emoji" class="field-input" placeholder="🪖 💣 🗺 📡" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">警报级别</label>
+          <select id="pub2-alert" class="field-select">
+            <option value="">无</option>
+            <option value="URGENT">🔴 URGENT</option>
+            <option value="EXCLUSIVE">◈ EXCLUSIVE</option>
+            <option value="ANALYSIS">◎ ANALYSIS</option>
+          </select>
+        </div>
+      </div>
+      <div class="pub-note">💡 只能在现有分类中发布。如需新增分类，请联系管理员。</div>
+      <div class="form-actions" style="margin-top:12px">
+        <button class="btn-primary" id="btn-publish2">发布文章</button>
+        <button class="btn-ghost" onclick="Dialog.close('dlg-publish')">取消</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ADMIN PANEL -->
   <div id="dlg-admin" class="dialog dialog-wide">
     <div class="dlg-head">
