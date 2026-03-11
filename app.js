@@ -921,7 +921,7 @@ var UserPanel = {
           if (!saved.length) { body.innerHTML = '<div class="profile-empty" style="padding:20px">暂无收藏</div>'; return; }
           body.innerHTML = saved.map(function(a){
             return '<div class="profile-card" style="margin:4px 8px;justify-content:space-between">'+
-              '<div style="display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0" onclick="Dialog.close(\'dlg-user\');Article.open(\''+a.id+'\'\2" >'+
+              '<div style="display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0" onclick="Dialog.close(\'dlg-user\');setTimeout(function(){Article.open(\''+a.id+'\');},120)">'+
               '<span class="profile-card-emoji">'+(a.emoji||'📰')+'</span>'+
               '<div class="profile-card-body">'+
               '<div class="profile-art-title">'+esc(a.title)+'</div>'+
@@ -973,9 +973,13 @@ var UserPanel = {
 var Admin = {
   open: function () {
     if (!State.currentUser||!State.currentUser.isAdmin){ Toast.show('权限不足',true); return; }
-    Admin._refreshCatSelect();
-    Admin.switchTab('publish');
-    Dialog.open('dlg-admin');
+    API.getTabs().then(function(tabs){
+      var sel = document.getElementById('pub-category');
+      if (sel) sel.innerHTML = (tabs||[]).filter(function(t){return t!=='全部';})
+        .map(function(t){return '<option value="'+t+'">'+t+'</option>';}).join('');
+      Admin.switchTab('publish');
+      Dialog.open('dlg-admin');
+    }).catch(function(){ Admin.switchTab('publish'); Dialog.open('dlg-admin'); });
   },
 
   openPublishOnly: function () {
@@ -984,8 +988,8 @@ var Admin = {
       var sel = document.getElementById('pub2-category');
       if (sel) sel.innerHTML = (tabs||[]).filter(function(t){return t!=='全部';})
         .map(function(t){return '<option value="'+t+'">'+t+'</option>';}).join('');
-    });
-    Dialog.open('dlg-publish');
+      Dialog.open('dlg-publish');
+    }).catch(function(){ Dialog.open('dlg-publish'); });
   },
 
   switchTab: function (tab) {
