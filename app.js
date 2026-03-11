@@ -582,6 +582,7 @@ var Profile = {
             '<span class="profile-card-emoji">'+(a.emoji||'📰')+'</span>'+
             '<div class="profile-card-body">'+
             '<div class="profile-art-title">'+esc(a.title)+'</div>'+
+            (a.desc?'<div class="profile-card-preview">'+esc(a.desc)+'</div>':'')+
             '<div class="profile-art-meta">'+esc(a.source)+' · '+formatDate(a.date)+' · ♥ '+a.likes+'</div>'+
             '</div></div>';
         }).join('')
@@ -593,7 +594,7 @@ var Profile = {
             '<span class="profile-card-emoji">💬</span>'+
             '<div class="profile-card-body">'+
             '<div class="profile-cmt-article">'+esc(c.articleTitle)+'</div>'+
-            '<div class="profile-cmt-body">'+esc(c.text)+'</div>'+
+            '<div class="profile-card-preview">'+esc(c.text)+'</div>'+
             '<div class="profile-cmt-meta">'+formatDate(c.date)+' · ♥ '+c.likes+'</div>'+
             '</div></div>';
         }).join('')
@@ -882,12 +883,14 @@ var UserPanel = {
       API.getProfileArticles(State.currentUser.id).then(function(arts){
         if (!arts||!arts.length) { body.innerHTML = '<div class="profile-empty" style="padding:20px">暂无发布内容</div>'; return; }
         body.innerHTML = arts.map(function(a){
-          return '<div class="upanel-item">'+
-            '<div class="upanel-item-main" onclick="Dialog.close(\'dlg-user\');Article.open(\''+a.id+'\')">'+
-            '<span class="profile-art-emoji">'+(a.emoji||'📰')+'</span>'+
-            '<div><div class="profile-art-title">'+esc(a.title)+'</div>'+
-            '<div class="profile-art-meta">'+esc(a.source)+' · '+formatDate(a.date)+' · ♥ '+a.likes+'</div></div>'+
-            '</div>'+
+          return '<div class="profile-card" style="margin:4px 8px;justify-content:space-between">'+
+            '<div style="display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0" onclick="Dialog.close(\'dlg-user\');Article.open(\''+a.id+'\')">'+
+            '<span class="profile-card-emoji">'+(a.emoji||'📰')+'</span>'+
+            '<div class="profile-card-body">'+
+            '<div class="profile-art-title">'+esc(a.title)+'</div>'+
+            (a.desc?'<div class="profile-card-preview">'+esc(a.desc)+'</div>':'')+
+            '<div class="profile-art-meta">'+esc(a.source)+' · '+formatDate(a.date)+' · ♥ '+a.likes+'</div>'+
+            '</div></div>'+
             '<button class="upanel-del-btn" onclick="UserPanel.deleteArticle(\''+a.id+'\',this)">删除</button>'+
             '</div>';
         }).join('');
@@ -897,12 +900,14 @@ var UserPanel = {
       API.getProfileComments(State.currentUser.id).then(function(cmts){
         if (!cmts||!cmts.length) { body.innerHTML = '<div class="profile-empty" style="padding:20px">暂无评论记录</div>'; return; }
         body.innerHTML = cmts.map(function(c){
-          return '<div class="upanel-item">'+
-            '<div class="upanel-item-main" onclick="Dialog.close(\'dlg-user\');Article.open(\''+c.articleId+'\')">'+
-            '<div class="profile-cmt-article">↳ '+esc(c.articleTitle)+'</div>'+
-            '<div class="profile-cmt-body">'+esc(c.text)+'</div>'+
+          return '<div class="profile-card" style="margin:4px 8px;justify-content:space-between">'+
+            '<div style="display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0" onclick="Dialog.close(\'dlg-user\');Article.open(\''+c.articleId+'\')">'+
+            '<span class="profile-card-emoji">💬</span>'+
+            '<div class="profile-card-body">'+
+            '<div class="profile-cmt-article">'+esc(c.articleTitle)+'</div>'+
+            '<div class="profile-card-preview">'+esc(c.text)+'</div>'+
             '<div class="profile-cmt-meta">'+formatDate(c.date)+'</div>'+
-            '</div>'+
+            '</div></div>'+
             '<button class="upanel-del-btn" onclick="UserPanel.deleteComment(\''+c.id+'\',\''+c.articleId+'\',this)">删除</button>'+
             '</div>';
         }).join('');
@@ -915,12 +920,14 @@ var UserPanel = {
           var saved = ids.map(function(id){ return (arts||[]).find(function(a){return a.id===id;}); }).filter(Boolean);
           if (!saved.length) { body.innerHTML = '<div class="profile-empty" style="padding:20px">暂无收藏</div>'; return; }
           body.innerHTML = saved.map(function(a){
-            return '<div class="upanel-item">'+
-              '<div class="upanel-item-main" onclick="Dialog.close(\'dlg-user\');Article.open(\''+a.id+'\')">'+
-              '<span class="profile-art-emoji">'+(a.emoji||'📰')+'</span>'+
-              '<div><div class="profile-art-title">'+esc(a.title)+'</div>'+
-              '<div class="profile-art-meta">'+esc(a.source)+'</div></div>'+
-              '</div>'+
+            return '<div class="profile-card" style="margin:4px 8px;justify-content:space-between">'+
+              '<div style="display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0" onclick="Dialog.close(\'dlg-user\');Article.open(\''+a.id+'\')">'+
+              '<span class="profile-card-emoji">'+(a.emoji||'📰')+'</span>'+
+              '<div class="profile-card-body">'+
+              '<div class="profile-art-title">'+esc(a.title)+'</div>'+
+              (a.desc?'<div class="profile-card-preview">'+esc(a.desc)+'</div>':'')+
+              '<div class="profile-art-meta">'+esc(a.source)+'</div>'+
+              '</div></div>'+
               '<button class="upanel-del-btn" onclick="UserPanel.unsave(\''+a.id+'\',this)">取消收藏</button>'+
               '</div>';
           }).join('');
