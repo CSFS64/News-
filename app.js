@@ -421,18 +421,17 @@ var Article = {
   },
 
   _renderCommentTree: function (comments, articleId) {
-    if (!comments||!comments.length) return '<div class="no-comments">// NO TRANSMISSIONS — 暂无评论</div>';
+    if (!comments||!comments.length) return '<div class="no-comments">暂无评论</div>';
 
     var SHOW_DEFAULT = 3;
-    var total = comments.length;
     var visible = comments.slice(0, SHOW_DEFAULT);
     var hidden  = comments.slice(SHOW_DEFAULT);
 
-    var html = visible.map(function(c){ return Article._renderComment(c, articleId, 0); }).join('');
+    var html = visible.map(function(c){ return Article._renderComment(c, articleId, 0, null); }).join('');
 
     if (hidden.length > 0) {
-      html += '<div id="cmt-collapsed-'+articleId+'" class="cmt-collapsed">'+
-        hidden.map(function(c){ return Article._renderComment(c, articleId, 0); }).join('')+
+      html += '<div id="cmt-collapsed-'+articleId+'" class="cmt-collapsed" style="display:none">'+
+        hidden.map(function(c){ return Article._renderComment(c, articleId, 0, null); }).join('')+
         '</div>';
       html += '<button class="cmt-show-more" onclick="Article.toggleComments(\''+articleId+'\',this)">'+
         '▼ 展开更多评论（'+hidden.length+'条）</button>';
@@ -444,23 +443,19 @@ var Article = {
   toggleComments: function (articleId, btn) {
     var el = document.getElementById('cmt-collapsed-'+articleId);
     if (!el) return;
-    var isHidden = el.style.display === 'none' || el.style.display === '';
-    if (isHidden) {
-      el.style.display = 'block';
-      btn.textContent = '▲ 收起评论';
-    } else {
-      el.style.display = 'none';
-      var count = el.querySelectorAll('.comment-item').length;
-      // only count top-level
-      var topLevel = Array.from(el.querySelectorAll('.comment-item')).filter(function(e){ return e.style.marginLeft==='0px'||!e.style.marginLeft; }).length;
-      btn.textContent = '▼ 展开更多评论（'+count+'条）';
-    }
+    var isHidden = el.style.display === 'none';
+    el.style.display = isHidden ? 'block' : 'none';
+    btn.textContent = isHidden ? '▲ 收起评论' : '▼ 展开更多评论';
   },
 
-  _renderComment: function (c, articleId, depth) {
+  _renderComment: function (c, articleId, depth, parentUser) {
     var indent = Math.min(depth, 3) * 20;
-    var liked  = false; // already set on the object from backend
-    if (c.liked) liked = true;
+    var liked  = c.liked || false;
+
+    // "X 回复 Y" prefix for replies
+    var replyToHtml = (depth > 0 && parentUser)
+      ? '<span class="cmt-reply-to">回复 <span class="cmt-reply-target">@'+esc(parentUser)+'</span> · </span>'
+      : '';
 
     var replyBtn = State.currentUser
       ? '<button class="cmt-reply-btn" onclick="Article.startReply(\''+articleId+'\',\''+c.id+'\',\''+esc(c.user)+'\')">回复</button>'
@@ -474,11 +469,11 @@ var Article = {
       '♥ <span class="cmt-like-count">'+(c.likes||0)+'</span></button>'+
       replyBtn+
       '</div>'+
-      '<div class="comment-body">'+esc(c.text)+'</div>'+
+      '<div class="comment-body">'+replyToHtml+esc(c.text)+'</div>'+
       '</div>';
 
     if (c.replies&&c.replies.length) {
-      html += c.replies.map(function(r){ return Article._renderComment(r, articleId, depth+1); }).join('');
+      html += c.replies.map(function(r){ return Article._renderComment(r, articleId, depth+1, c.user); }).join('');
     }
     return html;
   },
@@ -694,7 +689,16 @@ var Notifications = {
 
     var html = items.length ? items.map(function(n){
       var label = typeLabel[n.type] || n.type;
-      var link  = '';
+
+      // Content preview line
+      var preview = '';
+      if (n.articleTitle && (n.type==='like_article'||n.type==='save'||n.type==='comment')) {
+        preview = '<div class="notif-preview">📰 '+esc(n.articleTitle)+'</div>';
+      } else if (n.commentBody && (n.type==='reply'||n.type==='like_comment')) {
+        preview = '<div class="notif-preview">💬 '+esc(n.commentBody)+'</div>';
+      }
+
+      var link = '';
       if (n.articleId) {
         link = '<button class="notif-link" onclick="Dialog.close(\'dlg-notifications\');Article.open(\''+n.articleId+'\''+(n.commentId?',true':'')+')">查看 →</button>';
       }
@@ -704,9 +708,10 @@ var Notifications = {
         '<span class="notif-action">'+label+'</span>'+
         '<span class="notif-time">'+formatDate(n.date)+'</span>'+
         '</div>'+
+        preview+
         link+
         '</div>';
-    }).join('') : '<div class="notif-empty">// 暂无通知</div>';
+    }).join('') : '<div class="notif-empty">暂无通知</div>';
 
     document.getElementById('notif-list').innerHTML = html;
   }
@@ -954,18 +959,12 @@ var Admin = {
 
   openPublishOnly: function () {
     if (!State.currentUser){ Toast.show('请先登录',true); return; }
-    Admin._refreshCatSelect();
-    var u = State.currentUser;
-    // Show only publish tab for non-admins
-    document.querySelectorAll('.admin-tab').forEach(function(btn){
-      btn.style.display = u.isAdmin ? '' : (btn.dataset.tab==='publish' ? '' : 'none');
+    API.getTabs().then(function(tabs){
+      var sel = document.getElementById('pub2-category');
+      if (sel) sel.innerHTML = (tabs||[]).filter(function(t){return t!=='全部';})
+        .map(function(t){return '<option value="'+t+'">'+t+'</option>';}).join('');
     });
-    var featRow = document.getElementById('pub-featured');
-    if (featRow) featRow.closest('.field-group').style.display = u.isAdmin ? '' : 'none';
-    var note = document.getElementById('pub-cats-note');
-    if (note) note.hidden = u.isAdmin;
-    Admin.switchTab('publish');
-    Dialog.open('dlg-admin');
+    Dialog.open('dlg-publish');
   },
 
   switchTab: function (tab) {
@@ -985,6 +984,27 @@ var Admin = {
       sel.innerHTML = (tabs||[]).filter(function(t){return t!=='全部';})
         .map(function(t){return '<option value="'+t+'">'+t+'</option>';}).join('');
     });
+  },
+
+  publish2: function () {
+    var title    = document.getElementById('pub2-title').value.trim();
+    var source   = document.getElementById('pub2-source').value.trim();
+    var url      = document.getElementById('pub2-url').value.trim();
+    var category = document.getElementById('pub2-category').value;
+    var desc     = document.getElementById('pub2-desc').value.trim();
+    var emoji    = document.getElementById('pub2-emoji').value.trim()||'📡';
+    var alert    = document.getElementById('pub2-alert').value;
+    if (!title||!source||!url||!category){ Toast.show('请填写所有必填项',true); return; }
+    API.publishArticle({title,source,url,category,desc,emoji,alertLevel:alert,featured:false})
+      .then(function(){
+        ['pub2-title','pub2-source','pub2-url','pub2-desc','pub2-emoji'].forEach(function(id){
+          document.getElementById(id).value='';
+        });
+        document.getElementById('pub2-alert').value='';
+        Dialog.close('dlg-publish');
+        App.refresh();
+        Toast.show('文章已发布 ✓');
+      }).catch(function(e){ Toast.show('发布失败：'+(e.message||''),true); });
   },
 
   publish: function () {
@@ -1071,6 +1091,7 @@ var Dialog = {
     document.getElementById('btn-do-signup').addEventListener('click', Auth.doSignup);
     document.getElementById('btn-logout').addEventListener('click', Auth.doLogout);
     document.getElementById('btn-publish').addEventListener('click', Admin.publish);
+    document.getElementById('btn-publish2').addEventListener('click', Admin.publish2);
     document.getElementById('btn-add-cat').addEventListener('click', function(){
       var inp  = document.getElementById('new-cat');
       var name = inp.value.trim();
