@@ -389,7 +389,7 @@ var Article = {
     if (a.featured)   tags += '<span class="tag tag-featured">★ FEATURED</span>';
 
     var authorHtml = a.authorId
-      ? '<span class="art-author-link" data-uid="'+a.authorId+'" onclick="Profile.open(\''+a.authorId+'\');Dialog.close(\'dlg-article\')">@'+esc(a.authorName||'匿名')+'</span>'
+      ? '<span class="art-author-link" data-uid="'+a.authorId+'" onclick="Profile.open(\''+a.authorId+'\')+;Dialog.close(\'dlg-article\')">@'+esc(a.authorName||'匿名')+'</span>'
       : '';
 
     var commentsHtml = Article._renderCommentTree(a.comments||[], a.id);
@@ -463,7 +463,7 @@ var Article = {
 
     var html = '<div class="comment-item" id="cmt-'+c.id+'" style="margin-left:'+indent+'px">'+
       '<div class="comment-meta">'+
-      '<span class="comment-user" data-uid="'+c.userId+'" onclick="Profile.open(\''+c.userId+'\')">@'+esc(c.user)+'</span>'+
+      '<span class="comment-user" data-uid="'+c.userId+'" onclick="Profile.open(\''+c.userId+'\')" >@'+esc(c.user)+'</span>'+
       '<span class="comment-time">'+formatDate(c.date)+'</span>'+
       '<button class="cmt-like-btn'+(liked?' is-liked':'')+'" data-article-id="'+articleId+'" data-comment-id="'+c.id+'">'+
       '♥ <span class="cmt-like-count">'+(c.likes||0)+'</span></button>'+
@@ -590,7 +590,7 @@ var Profile = {
 
     var commentsHtml = comments.length
       ? comments.map(function(c){
-          return '<div class="profile-card" onclick="Dialog.close(\'dlg-profile\');Article.open(\''+c.articleId+'\')">'+
+          return '<div class="profile-card" onclick="Dialog.close(\'dlg-profile\');Article.open(\''+c.articleId+'\')">' +
             '<span class="profile-card-emoji">💬</span>'+
             '<div class="profile-card-body">'+
             '<div class="profile-cmt-article">'+(c.parentId?'回复 @'+esc(c.parentUsername||''):' 评论了《'+esc(c.articleTitle)+'》')+'</div>'+
@@ -719,7 +719,7 @@ var Notifications = {
       }
       return '<div class="notif-item'+(n.isRead?'':' is-unread')+'">'+
         '<div class="notif-meta">'+
-        '<span class="notif-actor" onclick="Profile.open(\''+n.actorId+'\')">@'+esc(n.actorName)+'</span>'+
+          '<span class="notif-actor" onclick="Profile.open(\''+n.actorId+'\')">@'+esc(n.actorName)+'</span>'+
         '<span class="notif-action">'+label+'</span>'+
         '<span class="notif-time">'+formatDate(n.date)+'</span>'+
         '</div>'+
@@ -884,7 +884,7 @@ var UserPanel = {
         if (!arts||!arts.length) { body.innerHTML = '<div class="profile-empty" style="padding:20px">暂无发布内容</div>'; return; }
         body.innerHTML = arts.map(function(a){
           return '<div class="profile-card" style="margin:4px 8px;justify-content:space-between">'+
-            '<div style="display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0" onclick="Dialog.close(\'dlg-user\');Article.open(\''+a.id+'\')">'+
+            '<div style="display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0" onclick="Dialog.close(\'dlg-user\');Article.open(\''+a.id+'\'\2" >'+
             '<span class="profile-card-emoji">'+(a.emoji||'📰')+'</span>'+
             '<div class="profile-card-body">'+
             '<div class="profile-art-title">'+esc(a.title)+'</div>'+
@@ -901,7 +901,7 @@ var UserPanel = {
         if (!cmts||!cmts.length) { body.innerHTML = '<div class="profile-empty" style="padding:20px">暂无评论记录</div>'; return; }
         body.innerHTML = cmts.map(function(c){
           return '<div class="profile-card" style="margin:4px 8px;justify-content:space-between">'+
-            '<div style="display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0" onclick="Dialog.close(\'dlg-user\');Article.open(\''+c.articleId+'\')">'+
+            '<div style="display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0" onclick="Dialog.close(\'dlg-user\');Article.open(\''+c.articleId+'\'\2" >'+
             '<span class="profile-card-emoji">💬</span>'+
             '<div class="profile-card-body">'+
             '<div class="profile-cmt-article">'+(c.parentId?'回复 @'+esc(c.parentUsername||''):' 评论了《'+esc(c.articleTitle)+'》')+'</div>'+
@@ -921,7 +921,7 @@ var UserPanel = {
           if (!saved.length) { body.innerHTML = '<div class="profile-empty" style="padding:20px">暂无收藏</div>'; return; }
           body.innerHTML = saved.map(function(a){
             return '<div class="profile-card" style="margin:4px 8px;justify-content:space-between">'+
-              '<div style="display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0" onclick="Dialog.close(\'dlg-user\');Article.open(\''+a.id+'\')">'+
+              '<div style="display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0" onclick="Dialog.close(\'dlg-user\');Article.open(\''+a.id+'\'\2" >'+
               '<span class="profile-card-emoji">'+(a.emoji||'📰')+'</span>'+
               '<div class="profile-card-body">'+
               '<div class="profile-art-title">'+esc(a.title)+'</div>'+
@@ -1405,14 +1405,14 @@ var MobileNav = {
         if (!arts || !arts.length) { body.innerHTML = '<div class="profile-empty" style="padding:20px">暂无发布内容</div>'; return; }
         body.innerHTML = arts.map(function (a) {
           return '<div class="profile-card" style="margin:4px 8px;justify-content:space-between">'+
-            '<div style="display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0" onclick="MobileNav._showPage(null);MobileNav.setActive('home');Article.open(''+a.id+'')">'+
+            '<div style="display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0" onclick="MobileNav._showPage(null);MobileNav.setActive(\'home\');Article.open(\''+a.id+'\'\2" >'+
             '<span class="profile-card-emoji">'+(a.emoji||'📰')+'</span>'+
             '<div class="profile-card-body">'+
             '<div class="profile-art-title">'+esc(a.title)+'</div>'+
             (a.desc?'<div class="profile-card-preview">'+esc(a.desc)+'</div>':'')+
             '<div class="profile-art-meta">'+esc(a.source)+' · '+formatDate(a.date)+' · ♥ '+a.likes+'</div>'+
             '</div></div>'+
-            '<button class="upanel-del-btn" onclick="UserPanel.deleteArticle(''+a.id+'',this)">删除</button>'+
+            '<button class="upanel-del-btn" onclick="UserPanel.deleteArticle(\'\'+a.id+\'\2this)">删除</button>'+
             '</div>';
         }).join('');
       });
@@ -1421,14 +1421,14 @@ var MobileNav = {
         if (!cmts || !cmts.length) { body.innerHTML = '<div class="profile-empty" style="padding:20px">暂无评论记录</div>'; return; }
         body.innerHTML = cmts.map(function (c) {
           return '<div class="profile-card" style="margin:4px 8px;justify-content:space-between">'+
-            '<div style="display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0" onclick="MobileNav._showPage(null);MobileNav.setActive('home');Article.open(''+c.articleId+'')">'+
+            '<div style="display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0" onclick="MobileNav._showPage(null);MobileNav.setActive(\'home\');Article.open(\''+c.articleId+'\'\2" >'+
             '<span class="profile-card-emoji">💬</span>'+
             '<div class="profile-card-body">'+
             '<div class="profile-cmt-article">'+(c.parentId?'回复 @'+esc(c.parentUsername||''):'评论了《'+esc(c.articleTitle)+'》')+'</div>'+
             '<div class="profile-card-preview">'+esc(c.text)+'</div>'+
             '<div class="profile-cmt-meta">'+formatDate(c.date)+'</div>'+
             '</div></div>'+
-            '<button class="upanel-del-btn" onclick="UserPanel.deleteComment(''+c.id+'',''+c.articleId+'',this)">删除</button>'+
+            '<button class="upanel-del-btn" onclick="UserPanel.deleteComment(\'\'+c.id+\'\2\'\'+c.articleId+\'\2this)">删除</button>'+
             '</div>';
         }).join('');
       });
@@ -1440,14 +1440,14 @@ var MobileNav = {
           if (!saved.length) { body.innerHTML = '<div class="profile-empty" style="padding:20px">暂无收藏</div>'; return; }
           body.innerHTML = saved.map(function (a) {
             return '<div class="profile-card" style="margin:4px 8px;justify-content:space-between">'+
-              '<div style="display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0" onclick="MobileNav._showPage(null);MobileNav.setActive('home');Article.open(''+a.id+'')">'+
+              '<div style="display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0" onclick="MobileNav._showPage(null);MobileNav.setActive(\'home\');Article.open(\''+a.id+'\'\2" >'+
               '<span class="profile-card-emoji">'+(a.emoji||'📰')+'</span>'+
               '<div class="profile-card-body">'+
               '<div class="profile-art-title">'+esc(a.title)+'</div>'+
               (a.desc?'<div class="profile-card-preview">'+esc(a.desc)+'</div>':'')+
               '<div class="profile-art-meta">'+esc(a.source)+'</div>'+
               '</div></div>'+
-              '<button class="upanel-del-btn" onclick="UserPanel.unsave(''+a.id+'',this)">取消收藏</button>'+
+              '<button class="upanel-del-btn" onclick="UserPanel.unsave(\'\'+a.id+\'\2this)">取消收藏</button>'+
               '</div>';
           }).join('');
         });
@@ -1554,11 +1554,11 @@ Notifications._renderInto = function (container) {
     container.innerHTML = notifs.map(function (n) {
       var action = n.type === 'like' ? '点赞了你的文章' : n.type === 'save' ? '收藏了你的文章' : n.type === 'comment' ? '评论了你的文章' : n.type === 'reply' ? '回复了你' : n.type === 'follow' ? '关注了你' : n.type === 'comment_like' ? '点赞了你的评论' : '';
       var link = n.articleId
-        ? '<button class="notif-link" onclick="MobileNav._showPage(null);MobileNav.setActive('home');Article.open(''+n.articleId+'''+(n.commentId?',true':'')+')">查看 →</button>'
+        ? '<button class="notif-link" onclick="MobileNav._showPage(null);MobileNav.setActive(\'home\');Article.open(\''+n.articleId+'\''+(n.commentId?',true':'')+')">查看 →</button>'
         : '';
       return '<div class="notif-item'+(n.isRead?'':' is-unread')+'">'+
         '<div class="notif-meta">'+
-        '<span class="notif-actor" onclick="Profile.open(''+n.actorId+'')">'+esc(n.actorName)+'</span>'+
+        '<span class="notif-actor" onclick="Profile.open(\'\'+n.actorId+\'\2">'+esc(n.actorName)+'</span>'+
         '<span class="notif-action">'+action+'</span>'+
         '<span class="notif-time">'+formatDate(n.createdAt)+'</span>'+
         '</div>'+
