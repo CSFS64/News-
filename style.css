@@ -48,6 +48,7 @@ button { cursor: pointer; font-family: inherit; }
 input, textarea, select { font-family: inherit; }
 dialog { border: none; padding: 0; background: transparent; }
 dialog::backdrop { background: transparent; }
+/* Use div.dialog instead of native dialog element to avoid browser default positioning */
 
 /* ── GRAIN OVERLAY ── */
 #grain {
