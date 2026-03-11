@@ -1224,6 +1224,7 @@ dialog::backdrop { background: transparent; }
   padding: 0 3px;
   line-height: 1;
 }
+#notif-badge[hidden] { display: none; }
 
 /* ── Notification list ── */
 .notif-item {
@@ -1494,3 +1495,14 @@ dialog::backdrop { background: transparent; }
   margin-top: 2px;
 }
 .profile-card-body { flex: 1; min-width: 0; }
+
+/* ── Profile card content preview ── */
+.profile-card-preview {
+  font-family: var(--body);
+  font-size: 12px;
+  color: var(--text-dim);
+  margin: 2px 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
