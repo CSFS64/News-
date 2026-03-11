@@ -593,7 +593,7 @@ var Profile = {
           return '<div class="profile-card" onclick="Dialog.close(\'dlg-profile\');Article.open(\''+c.articleId+'\')">'+
             '<span class="profile-card-emoji">💬</span>'+
             '<div class="profile-card-body">'+
-            '<div class="profile-cmt-article">'+(c.parentId ? '回复 @'+esc(c.parentUsername) : '评论了《'+esc(c.articleTitle)+'》')+'</div>'+
+            '<div class="profile-cmt-article">'+(c.parentId?'回复 @'+esc(c.parentUsername||''):' 评论了《'+esc(c.articleTitle)+'》')+'</div>'+
             '<div class="profile-card-preview">'+esc(c.text)+'</div>'+
             '<div class="profile-cmt-meta">'+formatDate(c.date)+' · ♥ '+c.likes+'</div>'+
             '</div></div>';
@@ -904,7 +904,7 @@ var UserPanel = {
             '<div style="display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0" onclick="Dialog.close(\'dlg-user\');Article.open(\''+c.articleId+'\')">'+
             '<span class="profile-card-emoji">💬</span>'+
             '<div class="profile-card-body">'+
-            '<div class="profile-cmt-article">'+(c.parentId ? '回复 @'+esc(c.parentUsername) : '评论了《'+esc(c.articleTitle)+'》')+'</div>'+
+            '<div class="profile-cmt-article">'+(c.parentId?'回复 @'+esc(c.parentUsername||''):' 评论了《'+esc(c.articleTitle)+'》')+'</div>'+
             '<div class="profile-card-preview">'+esc(c.text)+'</div>'+
             '<div class="profile-cmt-meta">'+formatDate(c.date)+'</div>'+
             '</div></div>'+
@@ -1200,3 +1200,159 @@ function formatDate(iso) {
   return d.getUTCFullYear()+'-'+pad(d.getUTCMonth()+1)+'-'+pad(d.getUTCDate());
 }
 function switchTab(tab) { App.switchTab(tab); }
+
+/* ══════════════════════════════════════════════════════════
+   MOBILE NAV
+   ══════════════════════════════════════════════════════════ */
+var MobileNav = {
+  _isMobile: function () { return window.innerWidth <= 700; },
+
+  init: function () {
+    if (!MobileNav._isMobile()) return;
+
+    // Mirror tabs into mobile header
+    MobileNav._mirrorTabs();
+
+    // Mobile search toggle
+    var searchBtn = document.getElementById('mobile-search-btn');
+    var searchBar = document.getElementById('mobile-search-bar');
+    var searchInput = document.getElementById('mobile-search-input');
+    var searchGo = document.getElementById('mobile-search-go');
+    if (searchBtn) {
+      searchBtn.addEventListener('click', function () {
+        searchBar.classList.toggle('is-open');
+        if (searchBar.classList.contains('is-open')) {
+          setTimeout(function () { searchInput && searchInput.focus(); }, 80);
+        }
+      });
+    }
+    function doSearch() {
+      var q = searchInput ? searchInput.value.trim() : '';
+      State.searchQuery = q;
+      searchBar && searchBar.classList.remove('is-open');
+      App.loadFeed();
+    }
+    if (searchGo) searchGo.addEventListener('click', doSearch);
+    if (searchInput) {
+      searchInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') doSearch();
+      });
+    }
+  },
+
+  _mirrorTabs: function () {
+    var mobileTabsRow = document.getElementById('mobile-tabs-row');
+    var desktopTabsRow = document.getElementById('tabs-row');
+    if (!mobileTabsRow || !desktopTabsRow) return;
+    // Clone desktop tabs into mobile header whenever tabs are rendered
+    var observer = new MutationObserver(function () {
+      mobileTabsRow.innerHTML = '';
+      desktopTabsRow.querySelectorAll('.tab-btn').forEach(function (btn) {
+        var clone = btn.cloneNode(true);
+        clone.addEventListener('click', function () {
+          // sync active state
+          mobileTabsRow.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+          clone.classList.add('active');
+          if (btn.onclick) btn.onclick();
+          // trigger the same handler
+        });
+        mobileTabsRow.appendChild(clone);
+      });
+    });
+    observer.observe(desktopTabsRow, { childList: true });
+  },
+
+  // Sync notification badge from header to bottom nav
+  syncBadge: function () {
+    var headerBadge = document.getElementById('notif-badge');
+    var navBadge = document.getElementById('mnav-badge');
+    if (!navBadge) return;
+    if (headerBadge && !headerBadge.hidden && headerBadge.textContent) {
+      navBadge.textContent = headerBadge.textContent;
+      navBadge.removeAttribute('hidden');
+    } else {
+      navBadge.setAttribute('hidden', '');
+    }
+  },
+
+  // Update which bottom tab is active
+  setActive: function (tab) {
+    ['home','following','notif','me'].forEach(function (t) {
+      var el = document.getElementById('mnav-' + t);
+      if (el) el.classList.toggle('active', t === tab);
+    });
+  },
+
+  go: function (tab) {
+    if (tab === 'home') {
+      MobileNav.setActive('home');
+      App.switchTab('全部');
+    } else if (tab === 'following') {
+      MobileNav.setActive('following');
+      App.switchFeed('following');
+    } else if (tab === 'notif') {
+      MobileNav.setActive('notif');
+      Notifications.open();
+      // Clear badge
+      var navBadge = document.getElementById('mnav-badge');
+      if (navBadge) navBadge.setAttribute('hidden', '');
+    } else if (tab === 'me') {
+      MobileNav.setActive('me');
+      if (!State.currentUser) {
+        Dialog.open('dlg-login');
+        MobileNav.setActive('home');
+      } else {
+        UserPanel.open();
+      }
+    }
+  },
+
+  publish: function () {
+    if (!State.currentUser) {
+      Toast.show('请先登录', true);
+      Dialog.open('dlg-login');
+      return;
+    }
+    if (State.currentUser.isAdmin) {
+      Dialog.open('dlg-admin');
+      Admin.switchTab('publish');
+    } else {
+      Dialog.open('dlg-publish');
+    }
+  },
+
+  // Update me icon with user initial when logged in
+  updateMeIcon: function () {
+    var icon = document.getElementById('mnav-me-icon');
+    if (!icon) return;
+    if (State.currentUser) {
+      icon.textContent = State.currentUser.username[0].toUpperCase();
+      icon.style.cssText = 'width:24px;height:24px;border-radius:50%;background:var(--olive);display:inline-flex;align-items:center;justify-content:center;font-family:var(--head);font-weight:700;font-size:13px;color:var(--text-bright)';
+    } else {
+      icon.textContent = '◈';
+      icon.style.cssText = '';
+    }
+  }
+};
+
+// Hook into existing renderHeader to sync mobile nav state
+var _origRenderHeader = Auth.renderHeader.bind(Auth);
+Auth.renderHeader = function () {
+  _origRenderHeader();
+  setTimeout(function () {
+    MobileNav.syncBadge();
+    MobileNav.updateMeIcon();
+  }, 50);
+};
+
+// Hook into notification open to sync badge
+var _origNotifOpen = Notifications.open.bind(Notifications);
+Notifications.open = function () {
+  _origNotifOpen();
+  setTimeout(MobileNav.syncBadge, 300);
+};
+
+// Init on DOM ready
+document.addEventListener('DOMContentLoaded', function () {
+  setTimeout(function () { MobileNav.init(); }, 100);
+});
