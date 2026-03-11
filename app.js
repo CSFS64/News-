@@ -968,10 +968,11 @@ var Admin = {
   },
 
   switchTab: function (tab) {
-    document.querySelectorAll('.admin-tab').forEach(function(btn){
+    var dlg = document.getElementById('dlg-admin');
+    dlg.querySelectorAll('.admin-tab').forEach(function(btn){
       btn.classList.toggle('active', btn.dataset.tab===tab);
     });
-    document.querySelectorAll('.atab-panel').forEach(function(panel){
+    dlg.querySelectorAll('.atab-panel').forEach(function(panel){
       panel.hidden = panel.id!=='atab-'+tab;
     });
     if (tab==='manage') Admin._renderManage();
@@ -1084,7 +1085,7 @@ var Dialog = {
       });
     });
     document.getElementById('backdrop').addEventListener('click', Dialog.closeAll);
-    document.querySelectorAll('.admin-tab').forEach(function(btn){
+    document.getElementById('dlg-admin').querySelectorAll('.admin-tab').forEach(function(btn){
       btn.addEventListener('click', function(){ Admin.switchTab(btn.dataset.tab); });
     });
     document.getElementById('btn-do-login').addEventListener('click', Auth.doLogin);
