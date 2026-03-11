@@ -21,6 +21,22 @@
   <!-- GRAIN OVERLAY -->
   <div id="grain"></div>
 
+  <!-- ══ MOBILE HEADER (hidden on desktop) ══ -->
+  <div id="mobile-header" style="display:none">
+    <div id="mobile-brand">
+      <div id="mobile-brand-icon">✛</div>
+      <div id="mobile-brand-name">战线快报</div>
+    </div>
+    <nav id="mobile-tabs-row">
+      <!-- filled by JS (same tabs) -->
+    </nav>
+    <button id="mobile-search-btn" aria-label="搜索">⌕</button>
+  </div>
+  <div id="mobile-search-bar">
+    <input type="search" id="mobile-search-input" placeholder="搜索战报…" autocomplete="off" />
+    <button id="mobile-search-go">搜索</button>
+  </div>
+
   <!-- ══ ALERT TICKER ══ -->
   <div id="alert-bar">
     <span class="alert-pill">⬤ LIVE</span>
@@ -348,6 +364,30 @@
       <div id="notif-list" style="padding:8px 0"></div>
     </div>
   </div>
+
+  <!-- ══ MOBILE BOTTOM NAV (hidden on desktop) ══ -->
+  <nav id="mobile-nav" style="display:none" aria-label="主导航">
+    <button class="mnav-btn active" id="mnav-home" onclick="MobileNav.go('home')">
+      <span class="mnav-icon">⌂</span>
+      <span class="mnav-label">首页</span>
+    </button>
+    <button class="mnav-btn" id="mnav-following" onclick="MobileNav.go('following')">
+      <span class="mnav-icon">◉</span>
+      <span class="mnav-label">关注</span>
+    </button>
+    <button class="mnav-btn mnav-publish" onclick="MobileNav.publish()">
+      <div class="mnav-publish-inner">＋</div>
+    </button>
+    <button class="mnav-btn" id="mnav-notif" onclick="MobileNav.go('notif')">
+      <span class="mnav-icon">◎</span>
+      <span class="mnav-label">通知</span>
+      <span class="mnav-badge" id="mnav-badge" hidden></span>
+    </button>
+    <button class="mnav-btn" id="mnav-me" onclick="MobileNav.go('me')">
+      <span class="mnav-icon" id="mnav-me-icon">◈</span>
+      <span class="mnav-label">我的</span>
+    </button>
+  </nav>
 
   <!-- TOAST CONTAINER -->
   <div id="toast-container"></div>
