@@ -389,7 +389,7 @@ var Article = {
     if (a.featured)   tags += '<span class="tag tag-featured">★ FEATURED</span>';
 
     var authorHtml = a.authorId
-      ? '<span class="art-author-link" data-uid="'+a.authorId+'" onclick="Profile.open(\''+a.authorId+'\')+;Dialog.close(\'dlg-article\')">@'+esc(a.authorName||'匿名')+'</span>'
+      ? '<span class="art-author-link" data-uid="'+a.authorId+'" onclick="Dialog.close(\'dlg-article\');setTimeout(function(){Profile.open(\''+a.authorId+'\');},120)">@'+esc(a.authorName||'匿名')+'</span>'
       : '';
 
     var commentsHtml = Article._renderCommentTree(a.comments||[], a.id);
@@ -578,7 +578,7 @@ var Profile = {
 
     var articlesHtml = articles.length
       ? articles.map(function(a){
-          return '<div class="profile-card" onclick="Dialog.close(\'dlg-profile\');Article.open(\''+a.id+'\')">'+
+          return '<div class="profile-card" onclick="Dialog.close(\'dlg-profile\');setTimeout(function(){Article.open(\''+a.id+'\');},120)">'+
             '<span class="profile-card-emoji">'+(a.emoji||'📰')+'</span>'+
             '<div class="profile-card-body">'+
             '<div class="profile-art-title">'+esc(a.title)+'</div>'+
@@ -590,7 +590,7 @@ var Profile = {
 
     var commentsHtml = comments.length
       ? comments.map(function(c){
-          return '<div class="profile-card" onclick="Dialog.close(\'dlg-profile\');Article.open(\''+c.articleId+'\')">' +
+          return '<div class="profile-card" onclick="Dialog.close(\'dlg-profile\');setTimeout(function(){Article.open(\''+c.articleId+'\');},120)">' +
             '<span class="profile-card-emoji">💬</span>'+
             '<div class="profile-card-body">'+
             '<div class="profile-cmt-article">'+(c.parentId?'回复 @'+esc(c.parentUsername||''):' 评论了《'+esc(c.articleTitle)+'》')+'</div>'+
@@ -1536,7 +1536,7 @@ var MobileNav = {
 };
 
 // Patch Notifications to support rendering into arbitrary container
-var _origNotifRender = Notifications.render.bind ? Notifications.render : null;
+var _origNotifRender = null; // render patched below
 Notifications._renderInto = function (container) {
   if (!State.currentUser) {
     container.innerHTML = '<div style="padding:40px;text-align:center;font-family:var(--mono);font-size:12px;color:var(--text-dim)">请先登录</div>';
