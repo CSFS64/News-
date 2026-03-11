@@ -641,6 +641,7 @@ dialog::backdrop { background: transparent; }
 #backdrop {
   position: fixed; inset: 0; z-index: 500;
   background: rgba(5,6,3,0.8);
+  backdrop-filter: blur(3px);
 }
 
 /* ── DIALOGS ── */
