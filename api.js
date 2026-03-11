@@ -400,7 +400,11 @@ var API = (function () {
       return http('GET', '/articles' + (params.length ? '?' + params.join('&') : ''));
     },
     getArticle:     function (id)   { return http('GET', '/articles/' + id); },
-    publishArticle: function (data) { return http('POST', '/articles', data); },
+    publishArticle: function (data) {
+      var payload = Object.assign({}, data, { description: data.desc });
+      delete payload.desc;
+      return http('POST', '/articles', payload);
+    },
     deleteArticle:  function (id)   { return http('DELETE', '/articles/' + id); },
     toggleLike:     function (aid)  { return http('POST', '/articles/' + aid + '/like'); },
     toggleSave:     function (aid)  { return http('POST', '/articles/' + aid + '/save'); },
