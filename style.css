@@ -1426,3 +1426,17 @@ dialog::backdrop { background: transparent; }
 
 /* Make cards clickable with cursor */
 .news-card { cursor: pointer; }
+
+/* ── Publish form note for non-admins ── */
+.pub-note {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--olive-light);
+  background: rgba(74,82,48,0.1);
+  border: 1px solid var(--olive-dim);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  margin-top: 8px;
+  line-height: 1.5;
+  width: 100%;
+}
