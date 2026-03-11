@@ -578,20 +578,21 @@ var Profile = {
 
     var articlesHtml = articles.length
       ? articles.map(function(a){
-          return '<div class="upanel-item">'+
-            '<div class="upanel-item-main" onclick="Dialog.close(\'dlg-profile\');Article.open(\''+a.id+'\')">'+
-            '<span class="profile-art-emoji">'+(a.emoji||'📰')+'</span>'+
-            '<div><div class="profile-art-title">'+esc(a.title)+'</div>'+
-            '<div class="profile-art-meta">'+esc(a.source)+' · '+formatDate(a.date)+' · ♥ '+a.likes+'</div></div>'+
+          return '<div class="profile-card" onclick="Dialog.close(\'dlg-profile\');Article.open(\''+a.id+'\')">'+
+            '<span class="profile-card-emoji">'+(a.emoji||'📰')+'</span>'+
+            '<div class="profile-card-body">'+
+            '<div class="profile-art-title">'+esc(a.title)+'</div>'+
+            '<div class="profile-art-meta">'+esc(a.source)+' · '+formatDate(a.date)+' · ♥ '+a.likes+'</div>'+
             '</div></div>';
         }).join('')
       : '<div class="profile-empty" style="padding:20px">暂无发布内容</div>';
 
     var commentsHtml = comments.length
       ? comments.map(function(c){
-          return '<div class="upanel-item">'+
-            '<div class="upanel-item-main" onclick="Dialog.close(\'dlg-profile\');Article.open(\''+c.articleId+'\')">'+
-            '<div class="profile-cmt-article">↳ '+esc(c.articleTitle)+'</div>'+
+          return '<div class="profile-card" onclick="Dialog.close(\'dlg-profile\');Article.open(\''+c.articleId+'\')">'+
+            '<span class="profile-card-emoji">💬</span>'+
+            '<div class="profile-card-body">'+
+            '<div class="profile-cmt-article">'+esc(c.articleTitle)+'</div>'+
             '<div class="profile-cmt-body">'+esc(c.text)+'</div>'+
             '<div class="profile-cmt-meta">'+formatDate(c.date)+' · ♥ '+c.likes+'</div>'+
             '</div></div>';
@@ -602,7 +603,7 @@ var Profile = {
       '<div style="padding:16px 20px;border-bottom:1px solid var(--border)">'+
       '<div style="display:flex;align-items:center;gap:12px">'+
       '<div class="profile-avatar">'+profile.username[0].toUpperCase()+'</div>'+
-      '<div class="profile-info">'+
+      '<div class="profile-info" style="flex:1">'+
       '<div class="profile-username">'+esc(profile.username)+'</div>'+
       '<div class="profile-stats-row">'+
       '<span class="profile-stat"><strong>'+profile.followers+'</strong> 粉丝</span>'+
@@ -611,7 +612,7 @@ var Profile = {
       '</div>'+
       '<div class="profile-join">注册于 '+formatDate(profile.joinDate)+'</div>'+
       '</div>'+
-      followBtn+
+      (followBtn ? '<div style="flex-shrink:0">'+followBtn+'</div>' : '')+
       '</div></div>'+
       '<div style="display:flex;border-bottom:1px solid var(--border)">'+
       '<button class="upanel-tab active" onclick="Profile._switchTab(\'articles\',this)">发布的文章</button>'+
