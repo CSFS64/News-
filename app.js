@@ -1372,7 +1372,7 @@ var MobileNav = {
     var header = document.getElementById('mpage-me-header');
     var logoutBtn = document.getElementById('mpage-logout-btn');
     if (!State.currentUser) {
-      if (header) header.innerHTML = '<div style="text-align:center;padding:20px 0"><button class="btn-primary" onclick="Dialog.open('dlg-login')">登录 / 注册</button></div>';
+      if (header) header.innerHTML = '<div style="text-align:center;padding:20px 0"><button class="btn-primary" onclick="Dialog.open(\'dlg-login\')">登录 / 注册</button></div>';
       if (logoutBtn) logoutBtn.style.display = 'none';
       var body = document.getElementById('mpage-me-body');
       if (body) body.innerHTML = '';
