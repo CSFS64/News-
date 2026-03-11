@@ -22,19 +22,15 @@
   <div id="grain"></div>
 
   <!-- ══ MOBILE HEADER (hidden on desktop) ══ -->
-  <div id="mobile-header" style="display:none">
-    <div id="mobile-brand">
-      <div id="mobile-brand-icon">✛</div>
-      <div id="mobile-brand-name">战线快报</div>
+  <div id="mobile-header">
+    <div id="mobile-header-top">
+      <div id="mobile-search-box">
+        <span class="search-icon">⌕</span>
+        <input type="search" id="mobile-search-input" placeholder="搜索战报…" autocomplete="off" />
+      </div>
+      <button id="mobile-search-cancel">取消</button>
     </div>
-    <nav id="mobile-tabs-row">
-      <!-- filled by JS (same tabs) -->
-    </nav>
-    <button id="mobile-search-btn" aria-label="搜索">⌕</button>
-  </div>
-  <div id="mobile-search-bar">
-    <input type="search" id="mobile-search-input" placeholder="搜索战报…" autocomplete="off" />
-    <button id="mobile-search-go">搜索</button>
+    <nav id="mobile-tabs-row"><!-- filled by JS --></nav>
   </div>
 
   <!-- ══ ALERT TICKER ══ -->
@@ -366,7 +362,7 @@
   </div>
 
   <!-- ══ MOBILE BOTTOM NAV (hidden on desktop) ══ -->
-  <nav id="mobile-nav" style="display:none" aria-label="主导航">
+  <nav id="mobile-nav" aria-label="主导航">
     <button class="mnav-btn active" id="mnav-home" onclick="MobileNav.go('home')">
       <span class="mnav-icon">⌂</span>
       <span class="mnav-label">首页</span>
@@ -388,6 +384,42 @@
       <span class="mnav-label">我的</span>
     </button>
   </nav>
+
+  <!-- ══ MOBILE PAGE: 关注 ══ -->
+  <div id="mpage-following" class="mobile-page">
+    <div class="mpage-header">
+      <span class="mpage-title">// 关注动态</span>
+    </div>
+    <div class="mpage-body" id="mpage-following-body"></div>
+  </div>
+
+  <!-- ══ MOBILE PAGE: 通知 ══ -->
+  <div id="mpage-notif" class="mobile-page">
+    <div class="mpage-header">
+      <span class="mpage-title">// 通知中心</span>
+      <button class="btn-sm btn-sm-ghost" id="mpage-notif-read-all" style="font-size:10px;padding:4px 10px">全部已读</button>
+    </div>
+    <div class="mpage-body" style="padding:0">
+      <div id="mpage-notif-list" style="padding:8px 0"></div>
+    </div>
+  </div>
+
+  <!-- ══ MOBILE PAGE: 我的 ══ -->
+  <div id="mpage-me" class="mobile-page">
+    <div class="mpage-header">
+      <span class="mpage-title">// 我的</span>
+      <button class="btn-sm btn-sm-ghost" id="mpage-logout-btn" style="font-size:10px;padding:4px 10px;display:none">退出</button>
+    </div>
+    <div class="mpage-body" style="padding:0">
+      <div id="mpage-me-header" style="padding:16px 20px;border-bottom:1px solid var(--border)"></div>
+      <div id="mpage-me-tabs" style="display:flex;border-bottom:1px solid var(--border)">
+        <button class="upanel-tab active" data-utab="articles">我的文章</button>
+        <button class="upanel-tab" data-utab="comments">我的评论</button>
+        <button class="upanel-tab" data-utab="saved">我的收藏</button>
+      </div>
+      <div id="mpage-me-body" style="padding:8px 0;min-height:200px"></div>
+    </div>
+  </div>
 
   <!-- TOAST CONTAINER -->
   <div id="toast-container"></div>
