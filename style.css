@@ -50,6 +50,15 @@ dialog { border: none; padding: 0; background: transparent; }
 dialog::backdrop { background: transparent; }
 /* Use div.dialog instead of native dialog element to avoid browser default positioning */
 
+/* ── CUSTOM SCROLLBAR ── */
+::-webkit-scrollbar               { width: 6px; height: 6px; }
+::-webkit-scrollbar-track         { background: var(--bg2); }
+::-webkit-scrollbar-thumb         { background: var(--olive); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover   { background: var(--olive-light); }
+::-webkit-scrollbar-corner        { background: var(--bg2); }
+/* Firefox */
+* { scrollbar-width: thin; scrollbar-color: var(--olive) var(--bg2); }
+
 /* ── GRAIN OVERLAY ── */
 #grain {
   position: fixed; inset: 0; z-index: 999; pointer-events: none;
