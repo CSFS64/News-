@@ -334,12 +334,16 @@ var Interactions = {
       var idx = State.userSaves.indexOf(id);
       if (r.saved){ if(idx<0) State.userSaves.push(id); }
       else        { if(idx>=0) State.userSaves.splice(idx,1); }
+      // Update card buttons in feed
       document.querySelectorAll('[data-action="save"][data-id="'+id+'"]').forEach(function(b){
         b.className='act-btn'+(r.saved?' is-saved':'');
         var s=b.querySelector('span'); if(s) s.textContent=r.count;
       });
+      // Update modal save button
+      var mb = document.getElementById('modal-save-'+id);
+      if (mb) { mb.className='act-btn'+(r.saved?' is-saved':''); var s=mb.querySelector('span'); if(s)s.textContent=r.count; }
       App.renderSaved();
-      Toast.show(r.saved?'已存档 ◈':'已取消存档');
+      Toast.show(r.saved?'已收藏 ◈':'已取消收藏');
     }).catch(function(){ Toast.show('操作失败',true); });
   },
 
@@ -407,10 +411,10 @@ var Article = {
       '<div class="art-actions">'+
       '<a href="'+a.url+'" target="_blank" rel="noopener" class="btn-read">阅读原文 ↗</a>'+
       '<button class="act-btn'+(liked?' is-liked':'')+'" id="modal-like-'+a.id+'" onclick="Interactions.like(\''+a.id+'\',this)">♥ <span>'+a.likes+'</span> 点赞</button>'+
-      '<button class="act-btn'+(saved?' is-saved':'')+'" id="modal-save-'+a.id+'" onclick="Interactions.save(\''+a.id+'\',this)">◈ <span>'+(a.saves||0)+'</span> 存档</button>'+
+      '<button class="act-btn'+(saved?' is-saved':'')+'" id="modal-save-'+a.id+'" onclick="Interactions.save(\''+a.id+'\',this)">◈ <span>'+(a.saves||0)+'</span> 收藏</button>'+
       '</div>'+
       '<div class="comments-section">'+
-      '<div class="comments-head">// TRANSMISSIONS · 评论 ('+(a.comments||[]).length+')</div>'+
+      '<div class="comments-head" id="comments-head-'+a.id+'">评论 ('+(a.commentsCount||a.comments&&a.comments.length||0)+')</div>'+
       commentArea+
       '<div id="comment-tree">'+commentsHtml+'</div>'+
       '</div>';
@@ -521,15 +525,20 @@ var Article = {
 
     API.postComment(id, State.currentUser.id, State.currentUser.username, text, parentId)
       .then(function(){
-        // Remove inline reply box if replying
         if (parentId) {
           var box = document.getElementById('inline-reply-'+parentId);
           if (box) box.remove();
         }
-        return API.getArticle(id).then(function(a){ Article._render(a); });
+        return API.getArticle(id).then(function(a){
+          Article._render(a);
+          // Update comment count on card in feed
+          document.querySelectorAll('[data-action="comment"][data-id="'+id+'"]').forEach(function(b){
+            b.innerHTML = '💬 '+(a.commentsCount||0);
+          });
+        });
       })
       .then(function(){
-        App.renderFeed(); App.renderStats();
+        App.renderStats();
         Toast.show('评论已发布 ▶');
         Notifications.pollUnread();
       })
@@ -813,17 +822,30 @@ var UserPanel = {
   open: function () {
     var u = State.currentUser;
     if (!u) return;
-    // Render header info
-    document.getElementById('user-panel-header').innerHTML =
-      '<div style="display:flex;align-items:center;gap:12px">'+
-      '<div class="profile-avatar" style="width:44px;height:44px;font-size:18px">'+u.username[0].toUpperCase()+'</div>'+
-      '<div>'+
-      '<div style="font-family:var(--head);font-size:16px;font-weight:700;color:var(--text-bright)">'+esc(u.username)+'</div>'+
-      '<div style="font-family:var(--mono);font-size:11px;color:var(--text-dim)">'+esc(u.email)+(u.isAdmin?' · 管理员':'')+'</div>'+
-      '</div></div>';
     Dialog.open('dlg-user');
+    // Load follow stats for header
+    API.getFollowStats(u.id).then(function(stats){
+      document.getElementById('user-panel-header').innerHTML =
+        '<div style="display:flex;align-items:center;gap:12px">'+
+        '<div class="profile-avatar" style="width:44px;height:44px;font-size:18px">'+u.username[0].toUpperCase()+'</div>'+
+        '<div>'+
+        '<div style="font-family:var(--head);font-size:16px;font-weight:700;color:var(--text-bright)">'+esc(u.username)+'</div>'+
+        '<div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-bottom:4px">'+esc(u.email)+(u.isAdmin?' · 管理员':'')+'</div>'+
+        '<div style="display:flex;gap:14px">'+
+        '<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim)"><strong style="color:var(--text-bright)">'+(stats.followers||0)+'</strong> 粉丝</span>'+
+        '<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim)"><strong style="color:var(--text-bright)">'+(stats.following||0)+'</strong> 关注</span>'+
+        '</div>'+
+        '</div></div>';
+    }).catch(function(){
+      document.getElementById('user-panel-header').innerHTML =
+        '<div style="display:flex;align-items:center;gap:12px">'+
+        '<div class="profile-avatar" style="width:44px;height:44px;font-size:18px">'+u.username[0].toUpperCase()+'</div>'+
+        '<div>'+
+        '<div style="font-family:var(--head);font-size:16px;font-weight:700;color:var(--text-bright)">'+esc(u.username)+'</div>'+
+        '<div style="font-family:var(--mono);font-size:11px;color:var(--text-dim)">'+esc(u.email)+(u.isAdmin?' · 管理员':'')+'</div>'+
+        '</div></div>';
+    });
     UserPanel.switchTab('articles');
-    // Bind tab buttons
     document.querySelectorAll('.upanel-tab').forEach(function(btn){
       btn.onclick = function(){ UserPanel.switchTab(btn.dataset.utab); };
     });
@@ -934,11 +956,14 @@ var Admin = {
     if (!State.currentUser){ Toast.show('请先登录',true); return; }
     Admin._refreshCatSelect();
     var u = State.currentUser;
+    // Show only publish tab for non-admins
     document.querySelectorAll('.admin-tab').forEach(function(btn){
-      if (btn.dataset.tab!=='publish') btn.style.display = u.isAdmin?'':'none';
+      btn.style.display = u.isAdmin ? '' : (btn.dataset.tab==='publish' ? '' : 'none');
     });
     var featRow = document.getElementById('pub-featured');
-    if (featRow) featRow.closest('.field-group').style.display = u.isAdmin?'':'none';
+    if (featRow) featRow.closest('.field-group').style.display = u.isAdmin ? '' : 'none';
+    var note = document.getElementById('pub-cats-note');
+    if (note) note.hidden = u.isAdmin;
     Admin.switchTab('publish');
     Dialog.open('dlg-admin');
   },
@@ -1062,6 +1087,17 @@ var Dialog = {
       State.searchQuery = document.getElementById('search-input').value.trim(); App.renderFeed();
     });
     document.addEventListener('keydown', function(e){ if(e.key==='Escape') Dialog.closeAll(); });
+
+    // Wheel scroll on tabs row (horizontal scroll with mouse wheel)
+    var tabsRow = document.getElementById('tabs-row');
+    if (tabsRow) {
+      tabsRow.addEventListener('wheel', function(e){
+        if (e.deltaY !== 0) {
+          e.preventDefault();
+          tabsRow.scrollLeft += e.deltaY * 0.8;
+        }
+      }, { passive: false });
+    }
   },
 
   open: function (id) {
