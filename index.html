@@ -120,7 +120,142 @@
   <!-- LOGIN -->
   <dialog id="dlg-login" class="dialog">
     <div class="dlg-head">
-      <span class="dlg-title">确认登录</span>
+      <span class="dlg-title">登录</span>
+      <button class="dlg-close" data-close="dlg-login">✕</button>
+    </div>
+    <div class="dlg-body">
+      <div class="field-group">
+        <label class="field-label">邮箱地址</label>
+        <input type="email" id="login-email" class="field-input" placeholder="your@email.com" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">密码</label>
+        <input type="password" id="login-password" class="field-input" placeholder="••••••••" />
+      </div>
+      <div class="field-error" id="login-err" hidden>⚠ 邮箱或密码错误</div>
+      <button class="btn-primary full" id="btn-do-login"><!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="description" content="战线快报 — 全球冲突与战事实时跟踪" />
+  <title>战线快报 · FRONTLINE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- GRAIN OVERLAY -->
+  <div id="grain"></div>
+
+  <!-- ══ ALERT TICKER ══ -->
+  <div id="alert-bar">
+    <span class="alert-pill">⬤ LIVE</span>
+    <div id="ticker-track">
+      <span id="ticker-content"></span>
+    </div>
+    <span id="utc-clock"></span>
+  </div>
+
+  <!-- ══ MASTHEAD ══ -->
+  <header id="masthead">
+    <div id="masthead-inner">
+      <div id="brand" onclick="switchTab('全部')" role="button" tabindex="0">
+        <div id="brand-icon">✛</div>
+        <div id="brand-text">
+          <div id="brand-main">战线快报</div>
+          <div id="brand-sub">FRONTLINE · DISPATCH</div>
+        </div>
+      </div>
+
+      <nav id="tabs-row" role="navigation" aria-label="分类导航">
+        <!-- filled by JS -->
+      </nav>
+
+      <div id="header-controls">
+        <div id="search-wrap">
+          <input type="search" id="search-input" placeholder="搜索战报…" autocomplete="off" />
+          <button id="search-btn" aria-label="搜索">⌕</button>
+        </div>
+        <div id="auth-area">
+          <!-- filled by JS -->
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══ MAIN LAYOUT ══ -->
+  <main id="layout">
+
+    <!-- LEFT: FEED -->
+    <section id="feed-col">
+      <div id="feed-header">
+        <span id="feed-label">// 最新战报</span>
+        <span id="feed-count"></span>
+      </div>
+      <div id="rec-banner" hidden>
+        <span class="rec-icon">◈</span>
+        <span id="rec-text"></span>
+      </div>
+      <div id="news-feed">
+        <!-- filled by JS -->
+      </div>
+    </section>
+
+    <!-- RIGHT: INTEL PANEL -->
+    <aside id="intel-col">
+
+      <div class="intel-widget" id="widget-hot">
+        <div class="widget-head"><span class="wh-icon">▲</span> 热度排行</div>
+        <div class="widget-body" id="hot-feed"></div>
+      </div>
+
+      <div class="intel-widget" id="widget-cats">
+        <div class="widget-head"><span class="wh-icon">▤</span> 战区分类</div>
+        <div class="widget-body" id="cats-body"></div>
+      </div>
+
+      <div class="intel-widget" id="widget-stats">
+        <div class="widget-head"><span class="wh-icon">◉</span> 实时数据</div>
+        <div class="widget-body">
+          <div class="stat-grid">
+            <div class="stat-cell"><span class="stat-val" id="s-articles">—</span><span class="stat-lbl">文章总数</span></div>
+            <div class="stat-cell"><span class="stat-val" id="s-today">—</span><span class="stat-lbl">今日更新</span></div>
+            <div class="stat-cell"><span class="stat-val" id="s-users">—</span><span class="stat-lbl">注册用户</span></div>
+            <div class="stat-cell"><span class="stat-val" id="s-comments">—</span><span class="stat-lbl">评论总数</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="intel-widget" id="widget-saved" hidden>
+        <div class="widget-head"><span class="wh-icon">◈</span> 我的存档</div>
+        <div class="widget-body" id="saved-feed"></div>
+      </div>
+
+    </aside>
+  </main>
+
+  <!-- ══ FOOTER ══ -->
+  <footer id="site-footer">
+    <div id="footer-inner">
+      <span id="footer-brand">战线快报 FRONTLINE DISPATCH</span>
+      <span id="footer-note">内容来自公开媒体，仅供参考。本站不代表任何立场。</span>
+      <span id="footer-tech">Powered by Frontline v1.0</span>
+    </div>
+  </footer>
+
+  <!-- ══════════════════════════════════ -->
+  <!--              MODALS               -->
+  <!-- ══════════════════════════════════ -->
+
+  <!-- BACKDROP -->
+  <div id="backdrop" hidden></div>
+
+  <!-- LOGIN -->
+  <dialog id="dlg-login" class="dialog">
+    <div class="dlg-head">
+      <span class="dlg-title">登录</span>
       <button class="dlg-close" data-close="dlg-login">✕</button>
     </div>
     <div class="dlg-body">
@@ -250,8 +385,9 @@
           </div>
         </div>
         <div class="form-actions">
-          <button class="btn-primary" id="btn-publish">发布战报</button>
+          <button class="btn-primary" id="btn-publish">发布文章</button>
           <button class="btn-ghost" onclick="Dialog.close('dlg-admin')">取消</button>
+          <div id="pub-cats-note" class="pub-note" hidden>💡 只能在现有分类中发布。如需新增分类，请联系管理员。</div>
         </div>
       </div>
 
@@ -274,7 +410,172 @@
   <!-- USER PROFILE -->
   <dialog id="dlg-profile" class="dialog dialog-wide">
     <div class="dlg-head">
-      <span class="dlg-title">// 操作员档案</span>
+      <span class="dlg-title">用户主页</span>
+      <button class="dlg-close" data-close="dlg-profile">✕</button>
+    </div>
+    <div class="dlg-body" id="dlg-profile-body"></div>
+  </dialog>
+
+  <!-- NOTIFICATIONS -->
+  <dialog id="dlg-notifications" class="dialog">
+    <div class="dlg-head">
+      <span class="dlg-title">// 通知中心</span>
+      <button class="dlg-close" data-close="dlg-notifications">✕</button>
+    </div>
+    <div class="dlg-body" style="padding:0">
+      <div id="notif-list" style="padding:8px 0"></div>
+    </div>
+  </dialog>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toast-container"></div>
+
+  <script src="api.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>登录</button>
+      <div class="dlg-switch">没有账号？<a href="#" data-open="dlg-signup" data-close-from="dlg-login">立即注册 →</a></div>
+    </div>
+  </dialog>
+
+  <!-- SIGNUP -->
+  <dialog id="dlg-signup" class="dialog">
+    <div class="dlg-head">
+      <span class="dlg-title">注册账号</span>
+      <button class="dlg-close" data-close="dlg-signup">✕</button>
+    </div>
+    <div class="dlg-body">
+      <div class="field-group">
+        <label class="field-label">用户名</label>
+        <input type="text" id="signup-username" class="field-input" placeholder="起个名字" maxlength="20" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">邮箱地址</label>
+        <input type="email" id="signup-email" class="field-input" placeholder="your@email.com" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">密码 <span class="field-hint">（至少6位）</span></label>
+        <input type="password" id="signup-password" class="field-input" placeholder="••••••••" />
+      </div>
+      <div class="field-error" id="signup-err" hidden>⚠ 该邮箱已被注册</div>
+      <button class="btn-primary full" id="btn-do-signup">创建账号</button>
+      <div class="dlg-switch">已有账号？<a href="#" data-open="dlg-login" data-close-from="dlg-signup">直接登录 →</a></div>
+    </div>
+  </dialog>
+
+  <!-- ARTICLE -->
+  <dialog id="dlg-article" class="dialog dialog-wide">
+    <div class="dlg-head">
+      <span class="dlg-title" id="art-dlg-label">// 文章详情</span>
+      <button class="dlg-close" data-close="dlg-article">✕</button>
+    </div>
+    <div class="dlg-body" id="art-dlg-body"></div>
+  </dialog>
+
+  <!-- USER PANEL -->
+  <dialog id="dlg-user" class="dialog dialog-wide">
+    <div class="dlg-head">
+      <span class="dlg-title">我的主页</span>
+      <button class="dlg-close" data-close="dlg-user">✕</button>
+    </div>
+    <div class="dlg-body" style="padding:0">
+      <div id="user-panel-header" style="padding:16px 20px;border-bottom:1px solid var(--border)"></div>
+      <div id="user-panel-tabs" style="display:flex;border-bottom:1px solid var(--border)">
+        <button class="upanel-tab active" data-utab="articles">我发布的文章</button>
+        <button class="upanel-tab" data-utab="comments">我的评论</button>
+        <button class="upanel-tab" data-utab="saved">我的收藏</button>
+      </div>
+      <div id="user-panel-body" style="padding:8px 0;min-height:200px"></div>
+      <div style="padding:12px 20px;border-top:1px solid var(--border)">
+        <button class="btn-danger full" id="btn-logout">退出登录</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ADMIN PANEL -->
+  <dialog id="dlg-admin" class="dialog dialog-wide">
+    <div class="dlg-head">
+      <span class="dlg-title">管理后台</span>
+      <button class="dlg-close" data-close="dlg-admin">✕</button>
+    </div>
+    <div class="dlg-body">
+      <div id="admin-tabs">
+        <button class="admin-tab active" data-tab="publish">＋ 发布战报</button>
+        <button class="admin-tab" data-tab="manage">≡ 管理文章</button>
+        <button class="admin-tab" data-tab="cats">▤ 管理分类</button>
+      </div>
+
+      <!-- Publish -->
+      <div id="atab-publish" class="atab-panel">
+        <div class="form-grid">
+          <div class="field-group span2">
+            <label class="field-label">标题 <span class="req">*</span></label>
+            <input type="text" id="pub-title" class="field-input" placeholder="战报标题" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">来源媒体 <span class="req">*</span></label>
+            <input type="text" id="pub-source" class="field-input" placeholder="Reuters / BBC / 新华社…" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">分类 <span class="req">*</span></label>
+            <select id="pub-category" class="field-select"></select>
+          </div>
+          <div class="field-group span2">
+            <label class="field-label">原文链接 <span class="req">*</span></label>
+            <input type="url" id="pub-url" class="field-input" placeholder="https://…" />
+          </div>
+          <div class="field-group span2">
+            <label class="field-label">摘要</label>
+            <textarea id="pub-desc" class="field-textarea" rows="3" placeholder="战况摘要…"></textarea>
+          </div>
+          <div class="field-group">
+            <label class="field-label">图标 Emoji</label>
+            <input type="text" id="pub-emoji" class="field-input" placeholder="🪖 💣 🗺 📡" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">警报级别</label>
+            <select id="pub-alert" class="field-select">
+              <option value="">无</option>
+              <option value="BREAKING">⚡ BREAKING</option>
+              <option value="URGENT">🔴 URGENT</option>
+              <option value="EXCLUSIVE">◈ EXCLUSIVE</option>
+              <option value="ANALYSIS">◎ ANALYSIS</option>
+            </select>
+          </div>
+          <div class="field-group span2">
+            <label class="field-label">
+              <input type="checkbox" id="pub-featured" style="margin-right:6px" />
+              设为置顶精选
+            </label>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-primary" id="btn-publish">发布文章</button>
+          <button class="btn-ghost" onclick="Dialog.close('dlg-admin')">取消</button>
+          <div id="pub-cats-note" class="pub-note" hidden>💡 只能在现有分类中发布。如需新增分类，请联系管理员。</div>
+        </div>
+      </div>
+
+      <!-- Manage -->
+      <div id="atab-manage" class="atab-panel" hidden>
+        <div id="manage-list" class="manage-scroll"></div>
+      </div>
+
+      <!-- Cats -->
+      <div id="atab-cats" class="atab-panel" hidden>
+        <div class="field-row">
+          <input type="text" id="new-cat" class="field-input" placeholder="新分类名称" />
+          <button class="btn-primary" id="btn-add-cat">添加</button>
+        </div>
+        <div id="cats-manage-list" class="manage-scroll"></div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- USER PROFILE -->
+  <dialog id="dlg-profile" class="dialog dialog-wide">
+    <div class="dlg-head">
+      <span class="dlg-title">用户主页</span>
       <button class="dlg-close" data-close="dlg-profile">✕</button>
     </div>
     <div class="dlg-body" id="dlg-profile-body"></div>
