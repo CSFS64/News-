@@ -62,6 +62,7 @@ dialog::backdrop { background: transparent; }
 /* ── GRAIN OVERLAY ── */
 #grain {
   position: fixed; inset: 0; z-index: 999; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
   opacity: 0.4;
 }
 
@@ -265,25 +266,6 @@ dialog::backdrop { background: transparent; }
   background: var(--red);
   border-color: var(--red);
   color: #fff;
-}
-#btn-user-panel {
-  background: var(--olive);
-  border-color: var(--olive-light);
-  color: var(--text-bright);
-  font-family: var(--head);
-  font-weight: 700;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-#btn-user-panel:hover {
-  background: var(--text-bright);
-  border-color: var(--text-bright);
-  color: var(--olive);
 }
 .btn-sm-red:hover { background: var(--red-hot); border-color: var(--red-hot); }
 .btn-sm-admin {
@@ -1236,12 +1218,12 @@ dialog::backdrop { background: transparent; }
   font-size: 9px;
   font-weight: 700;
   border-radius: 8px;
+  display: flex;
   align-items: center;
   justify-content: center;
   padding: 0 3px;
   line-height: 1;
 }
-#notif-badge[hidden] { display: none; }
 
 /* ── Notification list ── */
 .notif-item {
@@ -1487,3 +1469,28 @@ dialog::backdrop { background: transparent; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ── Profile cards (articles & comments in profile dialog) ── */
+.profile-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 16px;
+  margin: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg3);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+.profile-card:hover {
+  border-color: var(--olive-light);
+  background: var(--bg4);
+  transform: translateY(-1px);
+}
+.profile-card-emoji {
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.profile-card-body { flex: 1; min-width: 0; }
