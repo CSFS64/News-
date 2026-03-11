@@ -1210,62 +1210,254 @@ var MobileNav = {
   init: function () {
     if (!MobileNav._isMobile()) return;
 
-    // Mirror tabs into mobile header
+    // Mirror tabs from desktop into mobile header
     MobileNav._mirrorTabs();
 
-    // Mobile search toggle
-    var searchBtn = document.getElementById('mobile-search-btn');
-    var searchBar = document.getElementById('mobile-search-bar');
+    // Search: focus triggers active state, Enter searches, cancel clears
     var searchInput = document.getElementById('mobile-search-input');
-    var searchGo = document.getElementById('mobile-search-go');
-    if (searchBtn) {
-      searchBtn.addEventListener('click', function () {
-        searchBar.classList.toggle('is-open');
-        if (searchBar.classList.contains('is-open')) {
-          setTimeout(function () { searchInput && searchInput.focus(); }, 80);
+    var cancelBtn   = document.getElementById('mobile-search-cancel');
+    var mHeader     = document.getElementById('mobile-header');
+
+    if (searchInput) {
+      searchInput.addEventListener('focus', function () {
+        mHeader && mHeader.classList.add('search-active');
+      });
+      searchInput.addEventListener('input', function () {
+        var q = searchInput.value.trim();
+        // Live search with debounce
+        clearTimeout(MobileNav._searchTimer);
+        MobileNav._searchTimer = setTimeout(function () {
+          State.searchQuery = q;
+          App.loadFeed();
+        }, 400);
+      });
+      searchInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          clearTimeout(MobileNav._searchTimer);
+          State.searchQuery = searchInput.value.trim();
+          App.loadFeed();
+          searchInput.blur();
         }
       });
     }
-    function doSearch() {
-      var q = searchInput ? searchInput.value.trim() : '';
-      State.searchQuery = q;
-      searchBar && searchBar.classList.remove('is-open');
-      App.loadFeed();
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', function () {
+        searchInput.value = '';
+        State.searchQuery = '';
+        mHeader && mHeader.classList.remove('search-active');
+        searchInput.blur();
+        App.loadFeed();
+      });
     }
-    if (searchGo) searchGo.addEventListener('click', doSearch);
-    if (searchInput) {
-      searchInput.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') doSearch();
+
+    // "我的" page logout button
+    var logoutBtn = document.getElementById('mpage-logout-btn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', function () {
+        Auth.logout();
+        MobileNav.go('home');
+      });
+    }
+
+    // "我的" page tabs
+    document.querySelectorAll('#mpage-me-tabs .upanel-tab').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('#mpage-me-tabs .upanel-tab').forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        MobileNav._loadMeTab(btn.dataset.utab);
+      });
+    });
+
+    // "通知" mark all read
+    var readAllBtn = document.getElementById('mpage-notif-read-all');
+    if (readAllBtn) {
+      readAllBtn.addEventListener('click', function () {
+        if (!State.currentUser) return;
+        API.markAllNotificationsRead && API.markAllNotificationsRead(State.currentUser.id).then(function () {
+          MobileNav._loadNotifPage();
+          var navBadge = document.getElementById('mnav-badge');
+          if (navBadge) navBadge.setAttribute('hidden', '');
+        });
       });
     }
   },
+
+  _searchTimer: null,
 
   _mirrorTabs: function () {
     var mobileTabsRow = document.getElementById('mobile-tabs-row');
     var desktopTabsRow = document.getElementById('tabs-row');
     if (!mobileTabsRow || !desktopTabsRow) return;
-    // Clone desktop tabs into mobile header whenever tabs are rendered
-    var observer = new MutationObserver(function () {
+
+    function sync() {
       mobileTabsRow.innerHTML = '';
       desktopTabsRow.querySelectorAll('.tab-btn').forEach(function (btn) {
         var clone = btn.cloneNode(true);
+        // Re-bind click: switch tab AND go back to home page view
         clone.addEventListener('click', function () {
-          // sync active state
+          MobileNav._showPage(null); // ensure feed is visible
+          MobileNav.setActive('home');
+          // Trigger the original button's registered listeners
+          var evt = new MouseEvent('click', { bubbles: false });
+          // directly call App functions based on data
+          var tab = btn.dataset && btn.dataset.feed === 'following'
+            ? null : (btn.textContent || '').replace(/\d+/g,'').trim();
+          if (btn.dataset && btn.dataset.feed === 'following') {
+            App.switchFeed('following');
+          } else {
+            App.switchTab(tab || '全部');
+          }
+          // sync active
           mobileTabsRow.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
           clone.classList.add('active');
-          if (btn.onclick) btn.onclick();
-          // trigger the same handler
         });
         mobileTabsRow.appendChild(clone);
       });
-    });
+    }
+
+    sync();
+    var observer = new MutationObserver(sync);
     observer.observe(desktopTabsRow, { childList: true });
   },
 
-  // Sync notification badge from header to bottom nav
+  // Show/hide full-screen mobile pages
+  _showPage: function (pageId) {
+    ['mpage-following','mpage-notif','mpage-me'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.classList.toggle('is-active', id === pageId);
+    });
+    // Show/hide main feed
+    var layout = document.getElementById('layout');
+    var mobileHeader = document.getElementById('mobile-header');
+    if (pageId) {
+      if (layout) layout.style.display = 'none';
+      if (mobileHeader) mobileHeader.style.display = 'none';
+    } else {
+      if (layout) layout.style.display = '';
+      if (mobileHeader) mobileHeader.style.display = '';
+    }
+  },
+
+  _loadFollowingPage: function () {
+    var body = document.getElementById('mpage-following-body');
+    if (!body) return;
+    if (!State.currentUser) {
+      body.innerHTML = '<div style="padding:40px;text-align:center;font-family:var(--mono);font-size:12px;color:var(--text-dim)">请先登录查看关注动态</div>';
+      return;
+    }
+    body.innerHTML = '<div style="padding:20px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--text-dim)">加载中…</div>';
+    API.getArticles({ feed: 'following', userId: State.currentUser.id }).then(function (arts) {
+      if (!arts || !arts.length) {
+        body.innerHTML = '<div style="padding:40px;text-align:center;font-family:var(--mono);font-size:12px;color:var(--text-dim)">还没有关注任何人，<br>去发现有趣的用户吧</div>';
+        return;
+      }
+      body.innerHTML = arts.map(function (a, i) { return App.renderCard(a, i); }).join('');
+    }).catch(function () {
+      body.innerHTML = '<div style="padding:20px;text-align:center;color:var(--red);font-family:var(--mono);font-size:11px">加载失败</div>';
+    });
+  },
+
+  _loadNotifPage: function () {
+    var list = document.getElementById('mpage-notif-list');
+    if (!list) return;
+    if (!State.currentUser) {
+      list.innerHTML = '<div style="padding:40px;text-align:center;font-family:var(--mono);font-size:12px;color:var(--text-dim)">请先登录查看通知</div>';
+      return;
+    }
+    // Reuse the Notifications render logic
+    Notifications._renderInto(list);
+  },
+
+  _loadMePage: function () {
+    var header = document.getElementById('mpage-me-header');
+    var logoutBtn = document.getElementById('mpage-logout-btn');
+    if (!State.currentUser) {
+      if (header) header.innerHTML = '<div style="text-align:center;padding:20px 0"><button class="btn-primary" onclick="Dialog.open('dlg-login')">登录 / 注册</button></div>';
+      if (logoutBtn) logoutBtn.style.display = 'none';
+      var body = document.getElementById('mpage-me-body');
+      if (body) body.innerHTML = '';
+      return;
+    }
+    var u = State.currentUser;
+    if (logoutBtn) logoutBtn.style.display = '';
+    API.getFollowStats(u.id).then(function (stats) {
+      if (header) header.innerHTML =
+        '<div style="display:flex;align-items:center;gap:14px">'+
+        '<div class="profile-avatar" style="width:48px;height:48px;font-size:20px">'+u.username[0].toUpperCase()+'</div>'+
+        '<div style="flex:1">'+
+        '<div style="font-family:var(--head);font-size:17px;font-weight:700;color:var(--text-bright);letter-spacing:1px">'+esc(u.username)+'</div>'+
+        '<div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-top:3px">'+esc(u.email)+(u.isAdmin?' · 管理员':'')+'</div>'+
+        '<div style="display:flex;gap:16px;margin-top:6px">'+
+        '<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim)"><strong style="color:var(--text-bright)">'+(stats.followers||0)+'</strong> 粉丝</span>'+
+        '<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim)"><strong style="color:var(--text-bright)">'+(stats.following||0)+'</strong> 关注</span>'+
+        '</div></div></div>';
+    });
+    MobileNav._loadMeTab('articles');
+  },
+
+  _loadMeTab: function (tab) {
+    var body = document.getElementById('mpage-me-body');
+    if (!body || !State.currentUser) return;
+    body.innerHTML = '<div style="padding:20px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--text-dim)">加载中…</div>';
+
+    if (tab === 'articles') {
+      API.getProfileArticles(State.currentUser.id).then(function (arts) {
+        if (!arts || !arts.length) { body.innerHTML = '<div class="profile-empty" style="padding:20px">暂无发布内容</div>'; return; }
+        body.innerHTML = arts.map(function (a) {
+          return '<div class="profile-card" style="margin:4px 8px;justify-content:space-between">'+
+            '<div style="display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0" onclick="MobileNav._showPage(null);MobileNav.setActive('home');Article.open(''+a.id+'')">'+
+            '<span class="profile-card-emoji">'+(a.emoji||'📰')+'</span>'+
+            '<div class="profile-card-body">'+
+            '<div class="profile-art-title">'+esc(a.title)+'</div>'+
+            (a.desc?'<div class="profile-card-preview">'+esc(a.desc)+'</div>':'')+
+            '<div class="profile-art-meta">'+esc(a.source)+' · '+formatDate(a.date)+' · ♥ '+a.likes+'</div>'+
+            '</div></div>'+
+            '<button class="upanel-del-btn" onclick="UserPanel.deleteArticle(''+a.id+'',this)">删除</button>'+
+            '</div>';
+        }).join('');
+      });
+    } else if (tab === 'comments') {
+      API.getProfileComments(State.currentUser.id).then(function (cmts) {
+        if (!cmts || !cmts.length) { body.innerHTML = '<div class="profile-empty" style="padding:20px">暂无评论记录</div>'; return; }
+        body.innerHTML = cmts.map(function (c) {
+          return '<div class="profile-card" style="margin:4px 8px;justify-content:space-between">'+
+            '<div style="display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0" onclick="MobileNav._showPage(null);MobileNav.setActive('home');Article.open(''+c.articleId+'')">'+
+            '<span class="profile-card-emoji">💬</span>'+
+            '<div class="profile-card-body">'+
+            '<div class="profile-cmt-article">'+(c.parentId?'回复 @'+esc(c.parentUsername||''):'评论了《'+esc(c.articleTitle)+'》')+'</div>'+
+            '<div class="profile-card-preview">'+esc(c.text)+'</div>'+
+            '<div class="profile-cmt-meta">'+formatDate(c.date)+'</div>'+
+            '</div></div>'+
+            '<button class="upanel-del-btn" onclick="UserPanel.deleteComment(''+c.id+'',''+c.articleId+'',this)">删除</button>'+
+            '</div>';
+        }).join('');
+      });
+    } else if (tab === 'saved') {
+      API.getUserSaves(State.currentUser.id).then(function (ids) {
+        if (!ids || !ids.length) { body.innerHTML = '<div class="profile-empty" style="padding:20px">暂无收藏</div>'; return; }
+        return API.getArticles({}).then(function (arts) {
+          var saved = (ids||[]).map(function (id) { return (arts||[]).find(function (a) { return a.id===id; }); }).filter(Boolean);
+          if (!saved.length) { body.innerHTML = '<div class="profile-empty" style="padding:20px">暂无收藏</div>'; return; }
+          body.innerHTML = saved.map(function (a) {
+            return '<div class="profile-card" style="margin:4px 8px;justify-content:space-between">'+
+              '<div style="display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0" onclick="MobileNav._showPage(null);MobileNav.setActive('home');Article.open(''+a.id+'')">'+
+              '<span class="profile-card-emoji">'+(a.emoji||'📰')+'</span>'+
+              '<div class="profile-card-body">'+
+              '<div class="profile-art-title">'+esc(a.title)+'</div>'+
+              (a.desc?'<div class="profile-card-preview">'+esc(a.desc)+'</div>':'')+
+              '<div class="profile-art-meta">'+esc(a.source)+'</div>'+
+              '</div></div>'+
+              '<button class="upanel-del-btn" onclick="UserPanel.unsave(''+a.id+'',this)">取消收藏</button>'+
+              '</div>';
+          }).join('');
+        });
+      });
+    }
+  },
+
   syncBadge: function () {
     var headerBadge = document.getElementById('notif-badge');
-    var navBadge = document.getElementById('mnav-badge');
+    var navBadge    = document.getElementById('mnav-badge');
     if (!navBadge) return;
     if (headerBadge && !headerBadge.hidden && headerBadge.textContent) {
       navBadge.textContent = headerBadge.textContent;
@@ -1275,7 +1467,6 @@ var MobileNav = {
     }
   },
 
-  // Update which bottom tab is active
   setActive: function (tab) {
     ['home','following','notif','me'].forEach(function (t) {
       var el = document.getElementById('mnav-' + t);
@@ -1284,26 +1475,31 @@ var MobileNav = {
   },
 
   go: function (tab) {
+    if (!MobileNav._isMobile()) return;
+    MobileNav.setActive(tab);
+
     if (tab === 'home') {
-      MobileNav.setActive('home');
-      App.switchTab('全部');
+      MobileNav._showPage(null);
+
     } else if (tab === 'following') {
-      MobileNav.setActive('following');
-      App.switchFeed('following');
+      MobileNav._showPage('mpage-following');
+      MobileNav._loadFollowingPage();
+
     } else if (tab === 'notif') {
-      MobileNav.setActive('notif');
-      Notifications.open();
-      // Clear badge
+      MobileNav._showPage('mpage-notif');
+      MobileNav._loadNotifPage();
+      // clear badge
       var navBadge = document.getElementById('mnav-badge');
       if (navBadge) navBadge.setAttribute('hidden', '');
+
     } else if (tab === 'me') {
-      MobileNav.setActive('me');
       if (!State.currentUser) {
         Dialog.open('dlg-login');
         MobileNav.setActive('home');
-      } else {
-        UserPanel.open();
+        return;
       }
+      MobileNav._showPage('mpage-me');
+      MobileNav._loadMePage();
     }
   },
 
@@ -1321,21 +1517,61 @@ var MobileNav = {
     }
   },
 
-  // Update me icon with user initial when logged in
   updateMeIcon: function () {
     var icon = document.getElementById('mnav-me-icon');
     if (!icon) return;
     if (State.currentUser) {
       icon.textContent = State.currentUser.username[0].toUpperCase();
-      icon.style.cssText = 'width:24px;height:24px;border-radius:50%;background:var(--olive);display:inline-flex;align-items:center;justify-content:center;font-family:var(--head);font-weight:700;font-size:13px;color:var(--text-bright)';
+      icon.style.cssText = 'width:26px;height:26px;border-radius:50%;background:var(--olive);display:inline-flex;align-items:center;justify-content:center;font-family:var(--head);font-weight:700;font-size:13px;color:var(--text-bright);border:2px solid var(--olive-light)';
     } else {
       icon.textContent = '◈';
       icon.style.cssText = '';
     }
+    // Refresh me page if open
+    var mePage = document.getElementById('mpage-me');
+    if (mePage && mePage.classList.contains('is-active')) {
+      MobileNav._loadMePage();
+    }
   }
 };
 
-// Hook into existing renderHeader to sync mobile nav state
+// Patch Notifications to support rendering into arbitrary container
+var _origNotifRender = Notifications.render.bind ? Notifications.render : null;
+Notifications._renderInto = function (container) {
+  if (!State.currentUser) {
+    container.innerHTML = '<div style="padding:40px;text-align:center;font-family:var(--mono);font-size:12px;color:var(--text-dim)">请先登录</div>';
+    return;
+  }
+  container.innerHTML = '<div style="padding:20px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--text-dim)">加载中…</div>';
+  API.getNotifications(State.currentUser.id).then(function (notifs) {
+    API.markNotificationsRead && API.markNotificationsRead(State.currentUser.id);
+    var navBadge = document.getElementById('mnav-badge');
+    if (navBadge) navBadge.setAttribute('hidden', '');
+    if (!notifs || !notifs.length) {
+      container.innerHTML = '<div class="notif-empty">暂无通知</div>';
+      return;
+    }
+    container.innerHTML = notifs.map(function (n) {
+      var action = n.type === 'like' ? '点赞了你的文章' : n.type === 'save' ? '收藏了你的文章' : n.type === 'comment' ? '评论了你的文章' : n.type === 'reply' ? '回复了你' : n.type === 'follow' ? '关注了你' : n.type === 'comment_like' ? '点赞了你的评论' : '';
+      var link = n.articleId
+        ? '<button class="notif-link" onclick="MobileNav._showPage(null);MobileNav.setActive('home');Article.open(''+n.articleId+'''+(n.commentId?',true':'')+')">查看 →</button>'
+        : '';
+      return '<div class="notif-item'+(n.isRead?'':' is-unread')+'">'+
+        '<div class="notif-meta">'+
+        '<span class="notif-actor" onclick="Profile.open(''+n.actorId+'')">'+esc(n.actorName)+'</span>'+
+        '<span class="notif-action">'+action+'</span>'+
+        '<span class="notif-time">'+formatDate(n.createdAt)+'</span>'+
+        '</div>'+
+        (n.preview?'<div class="notif-preview">'+esc(n.preview)+'</div>':'')+
+        (link?'<div style="margin-top:4px">'+link+'</div>':'')+
+        '</div>';
+    }).join('');
+  }).catch(function () {
+    container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--red);font-family:var(--mono);font-size:11px">加载失败</div>';
+  });
+};
+
+// Hook renderHeader
 var _origRenderHeader = Auth.renderHeader.bind(Auth);
 Auth.renderHeader = function () {
   _origRenderHeader();
@@ -1345,14 +1581,7 @@ Auth.renderHeader = function () {
   }, 50);
 };
 
-// Hook into notification open to sync badge
-var _origNotifOpen = Notifications.open.bind(Notifications);
-Notifications.open = function () {
-  _origNotifOpen();
-  setTimeout(MobileNav.syncBadge, 300);
-};
-
-// Init on DOM ready
+// Init
 document.addEventListener('DOMContentLoaded', function () {
-  setTimeout(function () { MobileNav.init(); }, 100);
+  setTimeout(function () { MobileNav.init(); }, 120);
 });
