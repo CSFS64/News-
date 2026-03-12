@@ -617,3 +617,128 @@ input, textarea, select { font-size: 16px !important; }
 .toast { text-align: center !important; font-size: 12px !important; white-space: normal !important; }
 
 } /* end @media */
+
+/* ════════════════════════════════════════════════════════
+   ANIMATIONS  — added for page transitions & micro-interactions
+════════════════════════════════════════════════════════ */
+@media (max-width: 700px) {
+
+/* ── Full-screen page: fade + slide up on enter ── */
+@keyframes m-page-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes m-page-exit {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(6px); }
+}
+.m-page.m-page-open {
+  animation: m-page-enter 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+.m-page.m-page-exit {
+  animation: m-page-exit 0.18s ease both;
+  pointer-events: none;
+}
+
+/* ── Article page: slide in/out from right ── */
+@keyframes m-art-in {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+@keyframes m-art-out {
+  from { transform: translateX(0); }
+  to   { transform: translateX(100%); }
+}
+.m-art-slide-in  { animation: m-art-in  0.26s cubic-bezier(0.32, 0.72, 0, 1) both; }
+.m-art-slide-out { animation: m-art-out 0.24s cubic-bezier(0.4, 0, 1, 1) both; }
+
+/* ── Nav icon bounce on activation ── */
+@keyframes mnav-bounce {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(0.8); }
+  65%  { transform: scale(1.18); }
+  85%  { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+.mnav-icon.mnav-bounce { animation: mnav-bounce 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+/* ── Button tactile pop (like, save, send) ── */
+@keyframes m-btn-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(0.82); }
+  70%  { transform: scale(1.14); }
+  90%  { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+.m-btn-pop { animation: m-btn-pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+/* ── Mobile header slide down on first show ── */
+@keyframes m-hdr-drop {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+#mobile-header.m-hdr-ready {
+  animation: m-hdr-drop 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* ── Bottom nav slide up on first show ── */
+@keyframes m-nav-rise {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+#mobile-nav.m-nav-ready {
+  animation: m-nav-rise 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.08s both;
+}
+
+/* ── Card tap feedback — subtle highlight flash ── */
+.news-card { transition: background 0.12s ease; }
+.m-item    { transition: background 0.1s ease; }
+
+/* ── Like button heart: special color pulse ── */
+.m-act.liked, .act-btn.is-liked {
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease !important;
+}
+
+/* ── Tab indicator transition ── */
+.m-tab { transition: color 0.15s ease, border-bottom-color 0.15s ease; }
+
+/* ── Comment bar slide up when shown ── */
+@keyframes m-bar-rise {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+#m-comment-bar:not([style*="none"]) {
+  animation: m-bar-rise 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* ── Reply banner reveal ── */
+@keyframes m-banner-drop {
+  from { opacity: 0; max-height: 0; }
+  to   { opacity: 1; max-height: 60px; }
+}
+#m-reply-banner[style*="flex"] {
+  animation: m-banner-drop 0.18s ease both;
+  overflow: hidden;
+}
+
+/* ── Page header: subtle separator glow on scroll ── */
+.m-page-hd {
+  transition: box-shadow 0.2s ease;
+}
+
+/* ── Toast: smoother in/out ── */
+@keyframes m-toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(12px) scale(0.95); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0)    scale(1); }
+}
+.toast {
+  animation: m-toast-in 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) both !important;
+}
+
+/* ── Dialog bottom sheet: already has m-sheet, just smooth the backdrop ── */
+#backdrop { transition: opacity 0.2s ease; }
+
+/* ── Notif unread → read fade ── */
+.m-notif { transition: background 0.3s ease, border-left-color 0.3s ease; }
+
+} /* end @media */
