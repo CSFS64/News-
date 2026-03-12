@@ -198,6 +198,8 @@ var Mobile = {
     var show = !pageId;
     if (feed) feed.style.display = show ? '' : 'none';
     if (hdr)  hdr.style.display  = show ? 'flex' : 'none';
+    // Prevent body scroll when a page is open (fixes notch bleed)
+    document.body.style.overflow = show ? '' : 'hidden';
   },
 
   /* ── Set active nav button ── */
@@ -405,15 +407,7 @@ var Mobile = {
       if (logoutBtn) {
         logoutBtn.addEventListener('click', function () { Auth.logout(); Mobile.go('home'); });
       }
-      // Bind notif read-all
-      var readAll = document.getElementById('m-notif-readall');
-      if (readAll) {
-        readAll.addEventListener('click', function () {
-          if (!State.currentUser) return;
-          API.markAllNotificationsRead && API.markAllNotificationsRead(State.currentUser.id)
-            .then(function () { Mobile._loadNotifPage(); });
-        });
-      }
+      // (notif read-all bound in _loadNotifPage)
     }
 
     var logoutBtn = document.getElementById('m-logout-btn');
@@ -582,7 +576,7 @@ var Mobile = {
       '<div class="card-actions">' +
         '<button class="act-btn' + (liked ? ' is-liked' : '') + '" data-action="like" data-id="' + a.id + '">♥ <span>' + a.likes + '</span></button>' +
         '<button class="act-btn' + (saved ? ' is-saved' : '') + '" data-action="save" data-id="' + a.id + '">◈ <span>' + (a.saves || 0) + '</span></button>' +
-        '<span class="act-btn">💬 ' + (a.commentsCount || 0) + '</span>' +
+        '<button class="act-btn" data-action="comment" data-id="' + a.id + '">💬 <span>' + (a.commentsCount || 0) + '</span></button>' +
         '<button class="act-btn-read" data-action="open" data-id="' + a.id + '">阅读 →</button>' +
       '</div>' +
     '</div>';
@@ -602,6 +596,15 @@ var Mobile = {
 
     body.innerHTML = '<div class="m-empty">加载中…</div>';
     page.style.display = 'flex'; page.classList.add('m-page-open');
+    // Hide top bar and nav while article is open
+    var hdr2 = document.getElementById('mobile-header');
+    var nav2 = document.getElementById('mobile-nav');
+    if (hdr2) hdr2.style.display = 'none';
+    if (nav2) nav2.style.display = 'none';
+    // Hide layout too
+    var layout2 = document.getElementById('layout');
+    if (layout2) layout2.style.display = 'none';
+    document.body.style.overflow = 'hidden';
     var bar = document.getElementById('m-comment-bar');
     if (bar) bar.style.display = State.currentUser ? '' : 'none';
 
@@ -765,6 +768,20 @@ var Mobile = {
     if (page) { page.style.display = 'none'; page.classList.remove('m-page-open'); }
     Mobile._articleId = null;
     Mobile._cancelReply();
+    // Restore chrome based on which page we were on
+    var nav2 = document.getElementById('mobile-nav');
+    document.body.style.overflow = '';
+    if (nav2) nav2.style.display = 'flex';
+    if (Mobile._active === 'home') {
+      var hdr2 = document.getElementById('mobile-header');
+      var layout2 = document.getElementById('layout');
+      if (hdr2) hdr2.style.display = 'flex';
+      if (layout2) layout2.style.display = '';
+    } else {
+      // Re-show the page we came from
+      var pageEl = document.getElementById('m-page-' + Mobile._active);
+      if (pageEl) pageEl.style.display = 'flex';
+    }
   },
 
   /* ── Like / Save helpers ── */
@@ -867,11 +884,12 @@ Mobile._bindFeedCards = function () {
     if (card._mobileBound) return;
     card._mobileBound = true;
     var id = card.dataset.id;
-    // Tap on read button or the card body opens article
     card.addEventListener('click', function (e) {
-      // Let like/save action buttons do their own thing (delegated in app.js)
+      // Block if any data-action button was clicked (handled by app.js delegate)
       var btn = e.target.closest('[data-action]');
-      if (btn && (btn.dataset.action === 'like' || btn.dataset.action === 'save')) return;
+      if (btn) return;
+      // Block if any button/a was clicked
+      if (e.target.closest('button, a')) return;
       Mobile.openArticle(id);
     });
   });
