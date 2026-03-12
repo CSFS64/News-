@@ -140,10 +140,7 @@ input, textarea, select { font-size: 16px !important; }
 .act-btn:active { background: var(--bg4) !important; }
 .act-btn.is-liked { color: var(--red) !important; border-color: var(--red-dim) !important; background: rgba(192,57,43,0.1) !important; }
 .act-btn.is-saved { color: var(--amber) !important; border-color: rgba(212,128,10,0.35) !important; background: rgba(212,128,10,0.08) !important; }
-/* Comment count - no border, just text */
-.act-btn[data-action="comment"] {
-  background: none !important; border-color: transparent !important;
-}
+/* comment button matches like/save pill style */
 .act-btn-read {
   margin-left: auto !important;
   padding: 6px 14px !important; font-size: 11px !important;
@@ -207,7 +204,10 @@ input, textarea, select { font-size: 16px !important; }
 ════════════════════════════════════════════════════════ */
 .m-page {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  z-index: 300; background: var(--bg);
+  z-index: 300;
+  /* Solid opaque background — prevents ANY bleed-through */
+  background: var(--bg);
+  -webkit-backdrop-filter: none;
   flex-direction: column; overflow: hidden;
 }
 /* Article page sits above other pages but BELOW dialogs (600) */
