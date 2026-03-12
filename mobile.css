@@ -168,6 +168,8 @@ input, textarea, select { font-size: 16px !important; }
   border-radius: 15px !important; color: #fff !important;
   letter-spacing: 0.3px; -webkit-tap-highlight-color: transparent;
   display: inline-flex !important; align-items: center !important;
+  /* system font fallback so Chinese/symbols always render */
+  font-family: system-ui, -apple-system, sans-serif !important;
 }
 .act-btn-read:active { opacity: 0.82 !important; }
 
@@ -187,15 +189,28 @@ input, textarea, select { font-size: 16px !important; }
 .mnav-btn {
   flex: 1;
   /* buttons sit in the 82px zone, shifted UP from center */
-  height: 82px; padding-top: 14px;
+  height: 82px; padding-top: 13px;
   display: flex; flex-direction: column;
-  align-items: center; justify-content: flex-start; gap: 5px;
+  align-items: center; justify-content: flex-start; gap: 3px;
   background: none; border: none; color: var(--text-dim);
   -webkit-tap-highlight-color: transparent;
   cursor: pointer; position: relative; transition: color 0.12s;
 }
-/* ── Nav icon / label — all identical size ── */
-.mnav-icon { font-size: 22px; line-height: 1; display: block; width: 26px; text-align: center; }
+/* Active state */
+.mnav-btn.m-active { color: var(--red); }
+/* Active indicator pill beneath icon */
+.mnav-btn .mnav-dot {
+  display: block; width: 18px; height: 3px; border-radius: 2px;
+  background: transparent; transition: background 0.15s; flex-shrink: 0;
+}
+.mnav-btn.m-active .mnav-dot { background: var(--red); }
+/* Nav icon — SVG wrapper, pixel-perfect across all buttons */
+.mnav-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 24px; flex-shrink: 0;
+}
+.mnav-icon svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.mnav-btn.m-active .mnav-icon svg { stroke: var(--red); }
 .mnav-label { font-size: 10px; font-weight: 500; letter-spacing: 0.2px; line-height: 1; }
 
 /* Publish pill */
@@ -213,7 +228,7 @@ input, textarea, select { font-size: 16px !important; }
 
 /* Badge */
 .mnav-badge {
-  position: absolute; top: 10px; left: calc(50% + 9px);
+  position: absolute; top: 8px; left: calc(50% + 8px);
   min-width: 16px; height: 16px; padding: 0 4px;
   background: var(--red); color: #fff;
   font-size: 9px; font-weight: 700;
@@ -222,13 +237,7 @@ input, textarea, select { font-size: 16px !important; }
 }
 .mnav-badge[hidden] { display: none !important; }
 
-/* Me avatar icon */
-#mnav-me-icon.has-user {
-  width: 28px; height: 28px; border-radius: 50%;
-  background: var(--olive); border: 2px solid var(--olive-light);
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 700; font-size: 13px; color: var(--text-bright);
-}
+/* me avatar handled inline by _updateMeIcon */
 
 /* ════════════════════════════════════════════════════════
    FULL-SCREEN PAGES
@@ -517,10 +526,10 @@ input, textarea, select { font-size: 16px !important; }
   background: var(--bg2); border-top: 1px solid var(--border);
   /* Same total height as nav bar: 82px icon zone + safe area */
   min-height: calc(82px + env(safe-area-inset-bottom, 0px));
-  padding: 0 14px;
+  padding: 16px 14px 0;
   padding-bottom: env(safe-area-inset-bottom, 0px);
   box-shadow: 0 -4px 20px rgba(0,0,0,0.4);
-  /* Vertically centre content in the 82px zone */
+  /* Vertically distribute content with top breathing room */
   display: flex; flex-direction: column; justify-content: center;
 }
 #m-reply-banner {
