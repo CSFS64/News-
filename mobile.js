@@ -30,6 +30,12 @@ var Mobile = {
     Mobile._syncTabs();
     Mobile._setActive('home');
 
+    // Show mobile chrome
+    var hdr = document.getElementById('mobile-header');
+    var nav = document.getElementById('mobile-nav');
+    if (hdr) hdr.style.display = 'flex';
+    if (nav) nav.style.display = 'flex';
+
     // Keep tabs in sync when desktop tabs re-render
     var desktopTabs = document.getElementById('tabs-row');
     if (desktopTabs) {
@@ -100,6 +106,7 @@ var Mobile = {
         '<span id="m-article-label"></span>' +
       '</div>' +
       '<div id="m-article-body"></div>';
+    el.style.display = 'none';
     document.body.appendChild(el);
 
     var bar = document.createElement('div');
@@ -113,6 +120,7 @@ var Mobile = {
         '<textarea id="m-comment-ta" placeholder="发表评论…" rows="1"></textarea>' +
         '<button id="m-comment-send" onclick="Mobile.sendComment()">发送</button>' +
       '</div>';
+    bar.style.display = 'none';
     document.body.appendChild(bar);
 
     // Auto-show/hide comment bar with article page
@@ -201,7 +209,14 @@ var Mobile = {
   _showPage: function (pageId) {
     ['m-page-following', 'm-page-notif', 'm-page-me'].forEach(function (id) {
       var el = document.getElementById(id);
-      if (el) el.classList.toggle('m-page-open', id === pageId);
+      if (!el) return;
+      if (id === pageId) {
+        el.style.display = 'flex';
+        el.classList.add('m-page-open');
+      } else {
+        el.style.display = 'none';
+        el.classList.remove('m-page-open');
+      }
     });
     // Show/hide feed + topbar
     var feed = document.getElementById('layout');
@@ -299,7 +314,7 @@ var Mobile = {
     var existing = document.getElementById(id);
     if (existing) return existing.querySelector('#' + bodyId);
     var page = document.createElement('div');
-    page.id = id; page.className = 'm-page';
+    page.id = id; page.className = 'm-page'; page.style.display = 'none';
     page.innerHTML =
       '<div class="m-page-hd">' +
         '<span class="m-page-title">' + title + '</span>' +
@@ -312,7 +327,7 @@ var Mobile = {
 
   /* ── 关注 page ── */
   _loadFollowingPage: function () {
-    var body = Mobile._ensurePage('m-page-following', '// 关注动态', '', 'm-following-body');
+    var body = document.getElementById('m-following-body');
     if (!body) return;
     if (!State.currentUser) {
       body.innerHTML = '<div class="m-login-prompt"><p>登录后查看关注动态</p><button class="btn-primary" onclick="Dialog.open(\'dlg-login\')">立即登录</button></div>';
@@ -334,10 +349,8 @@ var Mobile = {
     });
   },
 
-  /* ── 通知 page ── */
   _loadNotifPage: function () {
-    var readAllBtn = '<button class="m-page-action" id="m-notif-readall">全部已读</button>';
-    var body = Mobile._ensurePage('m-page-notif', '// 通知中心', readAllBtn, 'm-notif-body');
+    var body = document.getElementById('m-notif-body');
     if (!body) return;
 
     var readAll = document.getElementById('m-notif-readall');
@@ -400,30 +413,12 @@ var Mobile = {
 
   /* ── 我的 page ── */
   _loadMePage: function () {
-    Mobile._ensurePage('m-page-me', '// 我的', '', 'm-me-body-wrap');
     var page = document.getElementById('m-page-me');
     if (!page) return;
 
-    // Rebuild page interior
-    if (!page._built) {
-      page._built = true;
-      var hd = page.querySelector('.m-page-hd');
-      var logoutBtn = document.createElement('button');
-      logoutBtn.className = 'm-page-action'; logoutBtn.id = 'm-logout-btn';
-      logoutBtn.textContent = '退出';
-      logoutBtn.addEventListener('click', function () { Auth.logout(); Mobile.go('home'); });
-      if (hd) hd.appendChild(logoutBtn);
-
-      var body = page.querySelector('.m-page-body');
-      body.innerHTML =
-        '<div id="m-me-header"></div>' +
-        '<div id="m-me-tabs">' +
-          '<button class="m-me-tab active" data-tab="articles">文章</button>' +
-          '<button class="m-me-tab" data-tab="comments">评论</button>' +
-          '<button class="m-me-tab" data-tab="saved">收藏</button>' +
-        '</div>' +
-        '<div id="m-me-body"></div>';
-
+    // Bind tabs once
+    if (!page._tabsBound) {
+      page._tabsBound = true;
       page.querySelectorAll('.m-me-tab').forEach(function (btn) {
         btn.addEventListener('click', function () {
           page.querySelectorAll('.m-me-tab').forEach(function (b) { b.classList.remove('active'); });
@@ -431,19 +426,32 @@ var Mobile = {
           Mobile._loadMeTab(btn.dataset.tab);
         });
       });
+      // Bind logout
+      var logoutBtn = document.getElementById('m-logout-btn');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', function () { Auth.logout(); Mobile.go('home'); });
+      }
+      // Bind notif read-all
+      var readAll = document.getElementById('m-notif-readall');
+      if (readAll) {
+        readAll.addEventListener('click', function () {
+          if (!State.currentUser) return;
+          API.markAllNotificationsRead && API.markAllNotificationsRead(State.currentUser.id)
+            .then(function () { Mobile._loadNotifPage(); });
+        });
+      }
     }
 
+    var logoutBtn = document.getElementById('m-logout-btn');
     if (!State.currentUser) {
       var header = document.getElementById('m-me-header');
       if (header) header.innerHTML = '<div class="m-login-prompt"><p>登录后查看个人主页</p><button class="btn-primary" onclick="Dialog.open(\'dlg-login\')">立即登录</button></div>';
-      var logoutBtn = document.getElementById('m-logout-btn');
       if (logoutBtn) logoutBtn.style.display = 'none';
       return;
     }
 
-    var u = State.currentUser;
-    var logoutBtn = document.getElementById('m-logout-btn');
     if (logoutBtn) logoutBtn.style.display = '';
+    var u = State.currentUser;
 
     API.getFollowStats(u.id).then(function (stats) {
       var header = document.getElementById('m-me-header');
@@ -465,14 +473,11 @@ var Mobile = {
         '<div><div class="m-me-name">' + esc(u.username) + '</div></div>';
     });
 
+    // Reset to articles tab
+    page.querySelectorAll('.m-me-tab').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.tab === 'articles');
+    });
     Mobile._loadMeTab('articles');
-    // Reset tab active state
-    var page2 = document.getElementById('m-page-me');
-    if (page2) {
-      page2.querySelectorAll('.m-me-tab').forEach(function (b) {
-        b.classList.toggle('active', b.dataset.tab === 'articles');
-      });
-    }
   },
 
   _loadMeTab: function (tab) {
@@ -623,7 +628,7 @@ var Mobile = {
     if (!page || !body) return;
 
     body.innerHTML = '<div class="m-empty">加载中…</div>';
-    page.classList.add('m-page-open');
+    page.style.display = 'flex'; page.classList.add('m-page-open');
     if (bar) bar.style.display = State.currentUser ? 'block' : 'none';
 
     API.getArticle(id).then(function (a) {
@@ -769,7 +774,7 @@ var Mobile = {
   closeArticle: function () {
     var page = document.getElementById('m-article-page');
     var bar  = document.getElementById('m-comment-bar');
-    if (page) page.classList.remove('m-page-open');
+    if (page) { page.style.display = 'none'; page.classList.remove('m-page-open'); }
     if (bar)  bar.style.display = 'none';
     Mobile._articleId = null;
     Mobile._cancelReply();
