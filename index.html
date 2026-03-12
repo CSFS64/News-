@@ -22,18 +22,6 @@
   <!-- GRAIN OVERLAY -->
   <div id="grain"></div>
 
-  <!-- ══ MOBILE HEADER (hidden on desktop) ══ -->
-  <div id="mobile-header">
-    <div id="mobile-header-top">
-      <div id="mobile-search-box">
-        <span class="search-icon">⌕</span>
-        <input type="search" id="mobile-search-input" placeholder="搜索战报…" autocomplete="off" />
-      </div>
-      <button id="mobile-search-cancel">取消</button>
-    </div>
-    <nav id="mobile-tabs-row"><!-- filled by JS --></nav>
-  </div>
-
   <!-- ══ ALERT TICKER ══ -->
   <div id="alert-bar">
     <span class="alert-pill">⬤ LIVE</span>
@@ -362,63 +350,62 @@
     </div>
   </div>
 
-  <!-- ══ MOBILE BOTTOM NAV (hidden on desktop) ══ -->
-  <nav id="mobile-nav" aria-label="主导航">
-    <button class="mnav-btn active" id="mnav-home" onclick="MobileNav.go('home')">
-      <span class="mnav-icon">⌂</span>
-      <span class="mnav-label">首页</span>
-    </button>
-    <button class="mnav-btn" id="mnav-following" onclick="MobileNav.go('following')">
-      <span class="mnav-icon">◉</span>
-      <span class="mnav-label">关注</span>
-    </button>
-    <button class="mnav-btn mnav-publish" onclick="MobileNav.publish()">
-      <div class="mnav-publish-inner">＋</div>
-    </button>
-    <button class="mnav-btn" id="mnav-notif" onclick="MobileNav.go('notif')">
-      <span class="mnav-icon">◎</span>
-      <span class="mnav-label">通知</span>
-      <span class="mnav-badge" id="mnav-badge" hidden></span>
-    </button>
-    <button class="mnav-btn" id="mnav-me" onclick="MobileNav.go('me')">
-      <span class="mnav-icon" id="mnav-me-icon">◈</span>
-      <span class="mnav-label">我的</span>
-    </button>
-  </nav>
+  <!-- ══ MOBILE HEADER (mobile.js shows this on mobile) ══ -->
+  <div id="mobile-header" style="display:none"><!-- filled by mobile.js --></div>
 
-  <!-- ══ MOBILE PAGE: 关注 ══ -->
-  <div id="mpage-following" class="mobile-page">
-    <div class="mpage-header">
-      <span class="mpage-title">// 关注动态</span>
+  <!-- ══ MOBILE NAV + PAGES (mobile.js controls these) ══ -->
+  <nav id="mobile-nav" style="display:none"><!-- filled by mobile.js --></nav>
+
+  <!-- Page: 关注 -->
+  <div id="m-page-following" class="m-page" style="display:none">
+    <div class="m-page-hd">
+      <span class="m-page-title">关注动态</span>
     </div>
-    <div class="mpage-body" id="mpage-following-body"></div>
+    <div class="m-page-body" id="m-following-body"></div>
   </div>
 
-  <!-- ══ MOBILE PAGE: 通知 ══ -->
-  <div id="mpage-notif" class="mobile-page">
-    <div class="mpage-header">
-      <span class="mpage-title">// 通知中心</span>
-      <button class="btn-sm btn-sm-ghost" id="mpage-notif-read-all" style="font-size:10px;padding:4px 10px">全部已读</button>
+  <!-- Page: 通知 -->
+  <div id="m-page-notif" class="m-page" style="display:none">
+    <div class="m-page-hd">
+      <span class="m-page-title">通知中心</span>
+      <button class="m-page-action" id="m-notif-readall">全部已读</button>
     </div>
-    <div class="mpage-body" style="padding:0">
-      <div id="mpage-notif-list" style="padding:8px 0"></div>
-    </div>
+    <div class="m-page-body" id="m-notif-body"></div>
   </div>
 
-  <!-- ══ MOBILE PAGE: 我的 ══ -->
-  <div id="mpage-me" class="mobile-page">
-    <div class="mpage-header">
-      <span class="mpage-title">// 我的</span>
-      <button class="btn-sm btn-sm-ghost" id="mpage-logout-btn" style="font-size:10px;padding:4px 10px;display:none">退出</button>
+  <!-- Page: 我的 -->
+  <div id="m-page-me" class="m-page" style="display:none">
+    <div class="m-page-hd">
+      <span class="m-page-title">我的</span>
+      <button class="m-page-action" id="m-logout-btn" style="display:none">退出</button>
     </div>
-    <div class="mpage-body" style="padding:0">
-      <div id="mpage-me-header" style="padding:16px 20px;border-bottom:1px solid var(--border)"></div>
-      <div id="mpage-me-tabs" style="display:flex;border-bottom:1px solid var(--border)">
-        <button class="upanel-tab active" data-utab="articles">我的文章</button>
-        <button class="upanel-tab" data-utab="comments">我的评论</button>
-        <button class="upanel-tab" data-utab="saved">我的收藏</button>
+    <div class="m-page-body" style="padding:0">
+      <div id="m-me-header"></div>
+      <div id="m-me-tabs">
+        <button class="m-me-tab active" data-tab="articles">文章</button>
+        <button class="m-me-tab" data-tab="comments">评论</button>
+        <button class="m-me-tab" data-tab="saved">收藏</button>
       </div>
-      <div id="mpage-me-body" style="padding:8px 0;min-height:200px"></div>
+      <div id="m-me-body"></div>
+    </div>
+  </div>
+
+  <!-- Article detail page -->
+  <div id="m-article-page" class="m-page" style="display:none;z-index:600">
+    <div class="m-page-hd" id="m-article-topbar">
+      <button id="m-article-back" onclick="Mobile.closeArticle()">←</button>
+      <span id="m-article-label" class="m-page-title" style="font-size:13px;font-weight:400"></span>
+    </div>
+    <div class="m-page-body" id="m-article-body"></div>
+    <div id="m-comment-bar" style="display:none">
+      <div id="m-reply-banner">
+        <span id="m-reply-label"></span>
+        <button id="m-reply-cancel" onclick="Mobile._cancelReply()">✕</button>
+      </div>
+      <div id="m-comment-row">
+        <textarea id="m-comment-ta" placeholder="发表评论…" rows="1"></textarea>
+        <button id="m-comment-send" onclick="Mobile.sendComment()">发送</button>
+      </div>
     </div>
   </div>
 
