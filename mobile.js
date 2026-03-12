@@ -303,8 +303,8 @@ var Mobile = {
 
   publish: function () {
     if (!State.currentUser) { Toast.show('请先登录', true); Dialog.open('dlg-login'); return; }
-    if (State.currentUser.isAdmin) { Dialog.open('dlg-admin'); Admin.switchTab('publish'); }
-    else { Dialog.open('dlg-publish'); }
+    if (State.currentUser.isAdmin) { Admin.open(); }
+    else { Admin.openPublishOnly(); }
   },
 
   /* ═══════════════════════════════════════════════════════
@@ -387,10 +387,10 @@ var Mobile = {
         var link = n.articleId
           ? '<button class="m-notif-link" data-aid="' + n.articleId + '" data-cmt="' + (n.commentId || '') + '">查看 →</button>'
           : '';
-        return '<div class="m-notif-item' + (n.isRead ? '' : ' m-unread') + '">' +
-          '<div class="m-notif-meta">' +
+        return '<div class="m-notif' + (n.isRead ? '' : ' unread') + '">' +
+          '<div class="m-notif-top">' +
           '<span class="m-notif-actor" data-uid="' + n.actorId + '">' + esc(n.actorName) + '</span>' +
-          '<span class="m-notif-action">' + label + '</span>' +
+          '<span class="m-notif-verb">' + label + '</span>' +
           '<span class="m-notif-time">' + formatDate(n.createdAt || n.date) + '</span>' +
           '</div>' +
           (n.preview ? '<div class="m-notif-preview">' + esc(n.preview) + '</div>' : '') +
@@ -457,20 +457,20 @@ var Mobile = {
       var header = document.getElementById('m-me-header');
       if (!header) return;
       header.innerHTML =
-        '<div class="m-me-avatar">' + u.username[0].toUpperCase() + '</div>' +
+        '<div class="m-avatar">' + u.username[0].toUpperCase() + '</div>' +
         '<div>' +
-          '<div class="m-me-name">' + esc(u.username) + '</div>' +
-          '<div class="m-me-sub">' + esc(u.email) + (u.isAdmin ? ' · 管理员' : '') + '</div>' +
-          '<div class="m-me-stats">' +
-            '<span class="m-me-stat"><strong>' + (stats.followers || 0) + '</strong> 粉丝</span>' +
-            '<span class="m-me-stat"><strong>' + (stats.following || 0) + '</strong> 关注</span>' +
+          '<div class="m-user-name">' + esc(u.username) + '</div>' +
+          '<div class="m-user-sub">' + esc(u.email) + (u.isAdmin ? ' · 管理员' : '') + '</div>' +
+          '<div class="m-user-stats">' +
+            '<span class="m-user-stat"><strong>' + (stats.followers || 0) + '</strong> 粉丝</span>' +
+            '<span class="m-user-stat"><strong>' + (stats.following || 0) + '</strong> 关注</span>' +
           '</div>' +
         '</div>';
     }).catch(function () {
       var header = document.getElementById('m-me-header');
       if (header) header.innerHTML =
-        '<div class="m-me-avatar">' + u.username[0].toUpperCase() + '</div>' +
-        '<div><div class="m-me-name">' + esc(u.username) + '</div></div>';
+        '<div class="m-avatar">' + u.username[0].toUpperCase() + '</div>' +
+        '<div><div class="m-user-name">' + esc(u.username) + '</div></div>';
     });
 
     // Reset to articles tab
@@ -489,27 +489,27 @@ var Mobile = {
       API.getProfileArticles(State.currentUser.id).then(function (arts) {
         if (!arts || !arts.length) { body.innerHTML = '<div class="m-empty">暂无发布内容</div>'; return; }
         body.innerHTML = arts.map(function (a) {
-          return '<div class="m-profile-card" data-id="' + a.id + '">' +
-            '<span class="m-profile-card-emoji">' + (a.emoji || '📰') + '</span>' +
-            '<div class="m-profile-card-body">' +
-              '<div class="m-profile-card-title">' + esc(a.title) + '</div>' +
-              '<div class="m-profile-card-sub">' + esc(a.source) + ' · ' + formatDate(a.date) + ' · ♥ ' + a.likes + '</div>' +
-              (a.desc ? '<div class="m-profile-card-preview">' + esc(a.desc) + '</div>' : '') +
+          return '<div class="m-item" data-id="' + a.id + '">' +
+            '<span class="m-item-emoji">' + (a.emoji || '📰') + '</span>' +
+            '<div class="m-item-body">' +
+              '<div class="m-item-title">' + esc(a.title) + '</div>' +
+              '<div class="m-item-sub">' + esc(a.source) + ' · ' + formatDate(a.date) + ' · ♥ ' + a.likes + '</div>' +
+              (a.desc ? '<div class="m-item-preview">' + esc(a.desc) + '</div>' : '') +
             '</div>' +
-            '<button class="m-profile-del" data-id="' + a.id + '">删除</button>' +
+            '<button class="m-item-del" data-id="' + a.id + '">删除</button>' +
           '</div>';
         }).join('');
-        body.querySelectorAll('.m-profile-card').forEach(function (el) {
+        body.querySelectorAll('.m-item').forEach(function (el) {
           el.addEventListener('click', function (e) {
-            if (e.target.classList.contains('m-profile-del')) return;
+            if (e.target.classList.contains('m-item-del')) return;
             Mobile.openArticle(el.dataset.id);
           });
         });
-        body.querySelectorAll('.m-profile-del').forEach(function (btn) {
+        body.querySelectorAll('.m-item-del').forEach(function (btn) {
           btn.addEventListener('click', function () {
             if (!confirm('确认删除这篇文章？')) return;
             API.deleteArticle(btn.dataset.id).then(function () {
-              btn.closest('.m-profile-card').remove();
+              btn.closest('.m-item').remove();
               App.renderFeed(); Toast.show('文章已删除');
             }).catch(function () { Toast.show('删除失败', true); });
           });
@@ -520,23 +520,23 @@ var Mobile = {
       API.getProfileComments(State.currentUser.id).then(function (cmts) {
         if (!cmts || !cmts.length) { body.innerHTML = '<div class="m-empty">暂无评论记录</div>'; return; }
         body.innerHTML = cmts.map(function (c) {
-          return '<div class="m-profile-card" data-aid="' + c.articleId + '" data-id="' + c.id + '">' +
-            '<span class="m-profile-card-emoji">💬</span>' +
-            '<div class="m-profile-card-body">' +
-              '<div class="m-profile-card-sub">' + (c.parentId ? '回复 @' + esc(c.parentUsername || '') : '评论了《' + esc(c.articleTitle) + '》') + '</div>' +
-              '<div class="m-profile-card-preview">' + esc(c.text) + '</div>' +
-              '<div class="m-profile-card-sub" style="margin-top:4px">' + formatDate(c.date) + '</div>' +
+          return '<div class="m-item" data-aid="' + c.articleId + '" data-id="' + c.id + '">' +
+            '<span class="m-item-emoji">💬</span>' +
+            '<div class="m-item-body">' +
+              '<div class="m-item-sub">' + (c.parentId ? '回复 @' + esc(c.parentUsername || '') : '评论了《' + esc(c.articleTitle) + '》') + '</div>' +
+              '<div class="m-item-preview">' + esc(c.text) + '</div>' +
+              '<div class="m-item-sub" style="margin-top:4px">' + formatDate(c.date) + '</div>' +
             '</div>' +
-            '<button class="m-profile-del" data-id="' + c.id + '" data-aid="' + c.articleId + '">删除</button>' +
+            '<button class="m-item-del" data-id="' + c.id + '" data-aid="' + c.articleId + '">删除</button>' +
           '</div>';
         }).join('');
-        body.querySelectorAll('.m-profile-card').forEach(function (el) {
+        body.querySelectorAll('.m-item').forEach(function (el) {
           el.addEventListener('click', function (e) {
-            if (e.target.classList.contains('m-profile-del')) return;
+            if (e.target.classList.contains('m-item-del')) return;
             Mobile.openArticle(el.dataset.aid);
           });
         });
-        body.querySelectorAll('.m-profile-del').forEach(function (btn) {
+        body.querySelectorAll('.m-item-del').forEach(function (btn) {
           btn.addEventListener('click', function () {
             if (!confirm('确认删除这条评论？')) return;
             var aid = btn.dataset.aid, cid = btn.dataset.id;
@@ -546,7 +546,7 @@ var Mobile = {
               headers: { Authorization: 'Bearer ' + (window._fl_token || '') }
             }).then(function (r) {
               if (!r.ok) throw new Error();
-              btn.closest('.m-profile-card').remove();
+              btn.closest('.m-item').remove();
               Toast.show('评论已删除');
             }).catch(function () { Toast.show('删除失败', true); });
           });
@@ -562,26 +562,26 @@ var Mobile = {
           }).filter(Boolean);
           if (!saved.length) { body.innerHTML = '<div class="m-empty">暂无收藏</div>'; return; }
           body.innerHTML = saved.map(function (a) {
-            return '<div class="m-profile-card" data-id="' + a.id + '">' +
-              '<span class="m-profile-card-emoji">' + (a.emoji || '📰') + '</span>' +
-              '<div class="m-profile-card-body">' +
-                '<div class="m-profile-card-title">' + esc(a.title) + '</div>' +
-                '<div class="m-profile-card-sub">' + esc(a.source) + '</div>' +
-                (a.desc ? '<div class="m-profile-card-preview">' + esc(a.desc) + '</div>' : '') +
+            return '<div class="m-item" data-id="' + a.id + '">' +
+              '<span class="m-item-emoji">' + (a.emoji || '📰') + '</span>' +
+              '<div class="m-item-body">' +
+                '<div class="m-item-title">' + esc(a.title) + '</div>' +
+                '<div class="m-item-sub">' + esc(a.source) + '</div>' +
+                (a.desc ? '<div class="m-item-preview">' + esc(a.desc) + '</div>' : '') +
               '</div>' +
-              '<button class="m-profile-del" data-id="' + a.id + '">取消</button>' +
+              '<button class="m-item-del" data-id="' + a.id + '">取消</button>' +
             '</div>';
           }).join('');
-          body.querySelectorAll('.m-profile-card').forEach(function (el) {
+          body.querySelectorAll('.m-item').forEach(function (el) {
             el.addEventListener('click', function (e) {
-              if (e.target.classList.contains('m-profile-del')) return;
+              if (e.target.classList.contains('m-item-del')) return;
               Mobile.openArticle(el.dataset.id);
             });
           });
-          body.querySelectorAll('.m-profile-del').forEach(function (btn) {
+          body.querySelectorAll('.m-item-del').forEach(function (btn) {
             btn.addEventListener('click', function () {
               API.toggleSave(btn.dataset.id).then(function () {
-                btn.closest('.m-profile-card').remove();
+                btn.closest('.m-item').remove();
                 App.renderFeed(); Toast.show('已取消收藏');
               }).catch(function () { Toast.show('操作失败', true); });
             });
@@ -606,10 +606,10 @@ var Mobile = {
         '<div class="card-meta"><span class="card-src">' + esc(a.source) + '</span><span class="card-time">' + formatDate(a.date) + '</span></div>' +
       '</div>' +
       '<div class="card-actions">' +
-        '<button class="act-btn' + (liked ? ' is-liked' : '') + '">♥ ' + a.likes + '</button>' +
-        '<button class="act-btn' + (saved ? ' is-saved' : '') + '">◈ ' + (a.saves || 0) + '</button>' +
+        '<button class="act-btn' + (liked ? ' is-liked' : '') + '" data-action="like" data-id="' + a.id + '">♥ <span>' + a.likes + '</span></button>' +
+        '<button class="act-btn' + (saved ? ' is-saved' : '') + '" data-action="save" data-id="' + a.id + '">◈ <span>' + (a.saves || 0) + '</span></button>' +
         '<span class="act-btn">💬 ' + (a.commentsCount || 0) + '</span>' +
-        '<button class="act-btn-read">阅读 →</button>' +
+        '<button class="act-btn-read" data-action="open" data-id="' + a.id + '">阅读 →</button>' +
       '</div>' +
     '</div>';
   },
@@ -663,12 +663,12 @@ var Mobile = {
       '<div class="m-art-meta">' +
         '<span>' + esc(a.source) + '</span>' +
         '<span>' + formatDate(a.date) + '</span>' +
-        (a.authorId ? '<span class="m-art-meta-author" data-uid="' + a.authorId + '">@' + esc(a.authorName || '匿名') + '</span>' : '') +
+        (a.authorId ? '<span class="m-art-author" data-uid="' + a.authorId + '">@' + esc(a.authorName || '匿名') + '</span>' : '') +
       '</div>' +
       '<div class="m-art-actions">' +
-        '<a class="m-art-read-btn" href="' + (a.url || '#') + '" target="_blank" rel="noopener">阅读原文 ↗</a>' +
-        '<button class="m-art-act-btn' + (liked ? ' is-liked' : '') + '" id="m-like-btn" data-id="' + a.id + '">♥ <span>' + a.likes + '</span></button>' +
-        '<button class="m-art-act-btn' + (saved ? ' is-saved' : '') + '" id="m-save-btn" data-id="' + a.id + '">◈ <span>' + (a.saves || 0) + '</span></button>' +
+        '<a class="m-art-read" href="' + (a.url || '#') + '" target="_blank" rel="noopener">阅读原文 ↗</a>' +
+        '<button class="m-act' + (liked ? ' liked' : '') + '" id="m-like-btn" data-id="' + a.id + '">♥ <span>' + a.likes + '</span></button>' +
+        '<button class="m-act' + (saved ? ' saved' : '') + '" id="m-save-btn" data-id="' + a.id + '">◈ <span>' + (a.saves || 0) + '</span></button>' +
       '</div>' +
       '<div class="m-comments-head">// 评论 · ' + ((a.comments || []).length) + ' 条</div>' +
       '<div id="m-comment-list">' + Mobile._renderComments(a.comments || [], a.id) + '</div>';
@@ -696,31 +696,31 @@ var Mobile = {
   _renderComments: function (comments, articleId) {
     if (!comments || !comments.length) return '<div class="m-empty">暂无评论</div>';
     return comments.map(function (c) {
-      var indent = c.parentId ? 'margin-left:20px;' : '';
+      
       var replyPrefix = c.parentId && c.parentUsername
-        ? '<div class="m-reply-prefix">回复 @' + esc(c.parentUsername) + '</div>' : '';
+        ? '<div class="m-cmt-prefix">回复 @' + esc(c.parentUsername) + '</div>' : '';
       var replyBtn = State.currentUser
-        ? '<button class="m-comment-reply-btn" data-uid="' + c.userId + '" data-id="' + c.id + '" data-user="' + esc(c.user) + '">回复</button>' : '';
-      var likedCmt = c.liked ? ' is-liked' : '';
-      return '<div class="m-comment-item" id="m-cmt-' + c.id + '" style="' + indent + '">' +
-        '<div class="m-comment-meta">' +
-          '<span class="m-comment-user" data-uid="' + c.userId + '">@' + esc(c.user) + '</span>' +
-          '<span class="m-comment-time">' + formatDate(c.date) + '</span>' +
+        ? '<button class="m-cmt-reply-btn" data-uid="' + c.userId + '" data-id="' + c.id + '" data-user="' + esc(c.user) + '">回复</button>' : '';
+      var likedCmt = c.liked ? ' liked' : '';
+      return '<div class="m-cmt' + (c.parentId ? ' is-reply' : '') + '" id="m-cmt-' + c.id + '">' +
+        '<div class="m-cmt-meta">' +
+          '<span class="m-cmt-user" data-uid="' + c.userId + '">@' + esc(c.user) + '</span>' +
+          '<span class="m-cmt-time">' + formatDate(c.date) + '</span>' +
           replyBtn +
           '<button class="m-comment-like' + likedCmt + '" data-id="' + c.id + '">♥ ' + (c.likes || 0) + '</button>' +
         '</div>' +
         replyPrefix +
-        '<div class="m-comment-body">' + esc(c.text) + '</div>' +
+        '<div class="m-cmt-body">' + esc(c.text) + '</div>' +
         (c.replies && c.replies.length ? Mobile._renderComments(c.replies, articleId) : '') +
       '</div>';
     }).join('');
   },
 
   _bindCommentActions: function (root, articleId) {
-    root.querySelectorAll('.m-comment-user').forEach(function (el) {
+    root.querySelectorAll('.m-cmt-user').forEach(function (el) {
       el.addEventListener('click', function () { Profile.open(el.dataset.uid); });
     });
-    root.querySelectorAll('.m-comment-reply-btn').forEach(function (btn) {
+    root.querySelectorAll('.m-cmt-reply-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
         Mobile._replyParentId = btn.dataset.id;
         Mobile._replyParentUser = btn.dataset.user;
@@ -732,7 +732,7 @@ var Mobile = {
         if (ta) { ta.focus(); ta.placeholder = '回复 @' + btn.dataset.user + '…'; }
       });
     });
-    root.querySelectorAll('.m-comment-like').forEach(function (btn) {
+    root.querySelectorAll('.m-cmt-like').forEach(function (btn) {
       btn.addEventListener('click', function () {
         if (!State.currentUser) { Toast.show('请先登录', true); return; }
         Interactions.likeComment(articleId, btn.dataset.id, btn);
@@ -786,11 +786,16 @@ var Mobile = {
     API.toggleLike(id).then(function (r) {
       var liked = r.liked;
       var count = r.likes;
-      btn.classList.toggle('is-liked', liked);
+      btn.classList.toggle('liked', liked);
       var span = btn.querySelector('span');
       if (span) span.textContent = count;
       if (liked) State.userLikes.push(id);
       else State.userLikes = State.userLikes.filter(function (x) { return x !== id; });
+      // Update feed cards too
+      document.querySelectorAll('[data-action="like"][data-id="' + id + '"]').forEach(function(b){
+        b.classList.toggle('is-liked', liked);
+        var s = b.querySelector('span'); if(s) s.textContent = count;
+      });
     }).catch(function () { Toast.show('操作失败', true); });
   },
 
@@ -799,11 +804,16 @@ var Mobile = {
     API.toggleSave(id).then(function (r) {
       var saved = r.saved;
       var count = r.saves;
-      btn.classList.toggle('is-saved', saved);
+      btn.classList.toggle('saved', saved);
       var span = btn.querySelector('span');
       if (span) span.textContent = count;
       if (saved) State.userSaves.push(id);
       else State.userSaves = State.userSaves.filter(function (x) { return x !== id; });
+      // Update feed cards too
+      document.querySelectorAll('[data-action="save"][data-id="' + id + '"]').forEach(function(b){
+        b.classList.toggle('is-saved', saved);
+        var s = b.querySelector('span'); if(s) s.textContent = count;
+      });
     }).catch(function () { Toast.show('操作失败', true); });
   },
 
