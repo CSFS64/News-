@@ -74,7 +74,7 @@ var Mobile = {
     if (!nav) return;
     nav.innerHTML =
       '<button class="mnav-btn m-active" id="mnav-home" onclick="Mobile.go(\'home\')">' +
-        '<span class="mnav-icon">⌂</span>' +
+        '<span class="mnav-icon">🏠</span>' +
         '<span class="mnav-label">首页</span>' +
       '</button>' +
       '<button class="mnav-btn" id="mnav-following" onclick="Mobile.go(\'following\')">' +
@@ -314,9 +314,13 @@ var Mobile = {
         return;
       }
       body.innerHTML = arts.map(function (a) { return Mobile._cardHTML(a); }).join('');
-      // Bind card clicks
-      body.querySelectorAll('.m-card').forEach(function (el) {
-        el.addEventListener('click', function () { Mobile.openArticle(el.dataset.id); });
+      // Bind card clicks (same guard as _bindFeedCards - skip buttons/links)
+      body.querySelectorAll('.m-card[data-id]').forEach(function (el) {
+        el.addEventListener('click', function (e) {
+          if (e.target.closest('[data-action]')) return;
+          if (e.target.closest('button, a')) return;
+          Mobile.openArticle(el.dataset.id);
+        });
       });
     }).catch(function () {
       body.innerHTML = '<div class="m-empty">加载失败，请稍后重试</div>';
@@ -328,13 +332,24 @@ var Mobile = {
     if (!body) return;
 
     var readAll = document.getElementById('m-notif-readall');
-    if (readAll && !readAll._bound) {
-      readAll._bound = true;
-      readAll.addEventListener('click', function () {
-        if (!State.currentUser) return;
-        API.markAllNotificationsRead && API.markAllNotificationsRead(State.currentUser.id)
-          .then(function () { Mobile._loadNotifPage(); });
-      });
+    if (readAll) {
+      readAll.onclick = function () {
+        if (!State.currentUser) { Toast.show('请先登录', true); return; }
+        readAll.textContent = '处理中'; readAll.disabled = true;
+        var uid = State.currentUser.id;
+        var p = API.markAllNotificationsRead
+          ? API.markAllNotificationsRead(uid)
+          : API.markNotificationsRead ? API.markNotificationsRead(uid) : Promise.resolve();
+        p.then(function () {
+          readAll.textContent = '全部已读'; readAll.disabled = false;
+          var mBadge = document.getElementById('mnav-badge');
+          if (mBadge) mBadge.setAttribute('hidden', '');
+          body.querySelectorAll('.m-notif.unread').forEach(function (el) {
+            el.classList.remove('unread');
+          });
+          Toast.show('已全部标为已读 ✓');
+        }).catch(function () { readAll.textContent = '全部已读'; readAll.disabled = false; });
+      };
     }
 
     if (!State.currentUser) {
@@ -343,7 +358,6 @@ var Mobile = {
     }
     body.innerHTML = '<div class="m-empty">加载中…</div>';
     API.getNotifications(State.currentUser.id).then(function (notifs) {
-      API.markNotificationsRead && API.markNotificationsRead(State.currentUser.id);
       var mBadge = document.getElementById('mnav-badge');
       if (mBadge) mBadge.setAttribute('hidden', '');
       if (!notifs || !notifs.length) {
@@ -371,6 +385,16 @@ var Mobile = {
           (link ? '<div style="margin-top:4px">' + link + '</div>' : '') +
           '</div>';
       }).join('');
+      // Mark all as read after rendering (so UI shows them as read)
+      setTimeout(function () {
+        if (API.markNotificationsRead) {
+          API.markNotificationsRead(State.currentUser.id).then(function () {
+            body.querySelectorAll('.m-notif.unread').forEach(function (el) {
+              el.classList.remove('unread');
+            });
+          }).catch(function(){});
+        }
+      }, 300);
       // Bind clicks
       body.querySelectorAll('.m-notif-actor').forEach(function (el) {
         el.addEventListener('click', function () { Profile.open(el.dataset.uid); });
@@ -575,7 +599,7 @@ var Mobile = {
         '<button class="act-btn' + (liked ? ' is-liked' : '') + '" data-action="like" data-id="' + a.id + '">♥ <span>' + a.likes + '</span></button>' +
         '<button class="act-btn' + (saved ? ' is-saved' : '') + '" data-action="save" data-id="' + a.id + '">◈ <span>' + (a.saves || 0) + '</span></button>' +
          +
-        '<button class="act-btn-read" data-action="open" data-id="' + a.id + '">阅读 →</button>' +
+        '<button class="act-btn-read" data-action="open" data-id="' + a.id + '">阅读</button>'
       '</div>' +
     '</div>';
   },
@@ -641,7 +665,7 @@ var Mobile = {
         (a.authorId ? '<span class="m-art-author" data-uid="' + a.authorId + '">' + esc(a.authorName || '匿名') + '</span>' : '') +
       '</div>' +
       '<div class="m-art-actions">' +
-        '<a class="m-art-read" href="' + (a.url || '#') + '" target="_blank" rel="noopener">阅读原文 ↗</a>' +
+        '<a class="m-art-read" href="' + (a.url || '#') + '" target="_blank" rel="noopener">阅读原文</a>' +
         '<button class="m-act' + (liked ? ' liked' : '') + '" id="m-like-btn" data-id="' + a.id + '">♥ <span>' + a.likes + '</span></button>' +
         '<button class="m-act' + (saved ? ' saved' : '') + '" id="m-save-btn" data-id="' + a.id + '">◈ <span>' + (a.saves || 0) + '</span></button>' +
       '</div>' +
