@@ -194,8 +194,8 @@ input, textarea, select { font-size: 16px !important; }
   -webkit-tap-highlight-color: transparent;
   cursor: pointer; position: relative; transition: color 0.12s;
 }
-.mnav-btn.m-active { color: var(--red); }
-.mnav-icon { font-size: 23px; line-height: 1; display: block; }
+/* ── Nav icon / label — all identical size ── */
+.mnav-icon { font-size: 22px; line-height: 1; display: block; width: 26px; text-align: center; }
 .mnav-label { font-size: 10px; font-weight: 500; letter-spacing: 0.2px; line-height: 1; }
 
 /* Publish pill */
@@ -515,14 +515,19 @@ input, textarea, select { font-size: 16px !important; }
 #m-comment-bar {
   flex-shrink: 0;
   background: var(--bg2); border-top: 1px solid var(--border);
-  padding: 10px 14px;
-  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  /* Same total height as nav bar: 82px icon zone + safe area */
+  min-height: calc(82px + env(safe-area-inset-bottom, 0px));
+  padding: 0 14px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   box-shadow: 0 -4px 20px rgba(0,0,0,0.4);
+  /* Vertically centre content in the 82px zone */
+  display: flex; flex-direction: column; justify-content: center;
 }
 #m-reply-banner {
   /* controlled by JS inline style */
   align-items: center; gap: 8px;
-  font-size: 11px; color: var(--text-dim); padding-bottom: 8px;
+  font-size: 11px; color: var(--text-dim);
+  padding-bottom: 8px;
   border-bottom: 1px solid var(--border); margin-bottom: 8px;
 }
 #m-reply-cancel {
@@ -530,17 +535,17 @@ input, textarea, select { font-size: 16px !important; }
   color: var(--red); font-size: 12px; cursor: pointer;
   -webkit-tap-highlight-color: transparent; padding: 2px 4px;
 }
-#m-comment-row { display: flex; gap: 8px; align-items: flex-end; }
+#m-comment-row { display: flex; gap: 8px; align-items: center; }
 #m-comment-ta {
   flex: 1; background: var(--bg3); border: 1px solid var(--border2);
   border-radius: 12px; padding: 10px 14px; color: var(--text);
   font-size: 15px; resize: none;
-  min-height: 42px; max-height: 100px; outline: none; line-height: 1.4;
+  min-height: 44px; max-height: 100px; outline: none; line-height: 1.4;
   transition: border-color 0.15s;
 }
 #m-comment-ta:focus { border-color: rgba(107,117,66,0.7); }
 #m-comment-send {
-  flex-shrink: 0; height: 42px; padding: 0 18px;
+  flex-shrink: 0; height: 44px; padding: 0 18px;
   border-radius: 12px; background: var(--red); border: none;
   color: #fff; font-size: 14px; font-weight: 600;
   cursor: pointer; -webkit-tap-highlight-color: transparent;
