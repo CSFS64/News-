@@ -72,25 +72,36 @@ var Mobile = {
   _buildNav: function () {
     var nav = document.getElementById('mobile-nav');
     if (!nav) return;
+    // All icons are 22×22 SVG (Feather-style, stroke-based) for pixel-perfect consistency
+    var ico = {
+      home:      '<svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>',
+      following: '<svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M16 11l2 2 4-4"/></svg>',
+      notif:     '<svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>',
+      me:        '<svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>'
+    };
     nav.innerHTML =
       '<button class="mnav-btn m-active" id="mnav-home" onclick="Mobile.go(\'home\')">' +
-        '<span class="mnav-icon">🏠</span>' +
+        '<span class="mnav-icon">' + ico.home + '</span>' +
+        '<span class="mnav-dot"></span>' +
         '<span class="mnav-label">首页</span>' +
       '</button>' +
       '<button class="mnav-btn" id="mnav-following" onclick="Mobile.go(\'following\')">' +
-        '<span class="mnav-icon">◉</span>' +
+        '<span class="mnav-icon">' + ico.following + '</span>' +
+        '<span class="mnav-dot"></span>' +
         '<span class="mnav-label">关注</span>' +
       '</button>' +
       '<button class="mnav-btn mnav-pub" onclick="Mobile.publish()">' +
-        '<div class="mnav-pub-pill">＋</div>' +
+        '<div class="mnav-pub-pill">+</div>' +
       '</button>' +
       '<button class="mnav-btn" id="mnav-notif" onclick="Mobile.go(\'notif\')">' +
-        '<span class="mnav-icon">◎</span>' +
+        '<span class="mnav-icon">' + ico.notif + '</span>' +
+        '<span class="mnav-dot"></span>' +
         '<span class="mnav-label">通知</span>' +
         '<span class="mnav-badge" id="mnav-badge" hidden></span>' +
       '</button>' +
       '<button class="mnav-btn" id="mnav-me" onclick="Mobile.go(\'me\')">' +
-        '<span class="mnav-icon" id="mnav-me-icon">◈</span>' +
+        '<span class="mnav-icon" id="mnav-me-icon">' + ico.me + '</span>' +
+        '<span class="mnav-dot"></span>' +
         '<span class="mnav-label">我的</span>' +
       '</button>';
   },
@@ -214,11 +225,12 @@ var Mobile = {
     var icon = document.getElementById('mnav-me-icon');
     if (!icon) return;
     if (State.currentUser) {
-      icon.textContent = State.currentUser.username[0].toUpperCase();
-      icon.className = 'mnav-icon has-user';
+      // Replace SVG with avatar initial
+      icon.innerHTML = '<span style="font-size:14px;font-weight:700;color:var(--text-bright)">' + State.currentUser.username[0].toUpperCase() + '</span>';
+      icon.style.cssText = 'background:var(--olive);border:2px solid var(--olive-light);border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center';
     } else {
-      icon.textContent = '◈';
-      icon.className = 'mnav-icon';
+      icon.innerHTML = '<svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;stroke:currentColor;fill:none"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>';
+      icon.style.cssText = '';
     }
     // Refresh me page if open
     if (Mobile._active === 'me') Mobile._loadMePage();
@@ -337,9 +349,7 @@ var Mobile = {
         if (!State.currentUser) { Toast.show('请先登录', true); return; }
         readAll.textContent = '处理中'; readAll.disabled = true;
         var uid = State.currentUser.id;
-        var p = API.markAllNotificationsRead
-          ? API.markAllNotificationsRead(uid)
-          : API.markNotificationsRead ? API.markNotificationsRead(uid) : Promise.resolve();
+        var p = API.markAllRead ? API.markAllRead() : Promise.resolve();
         p.then(function () {
           readAll.textContent = '全部已读'; readAll.disabled = false;
           var mBadge = document.getElementById('mnav-badge');
@@ -385,16 +395,18 @@ var Mobile = {
           (link ? '<div style="margin-top:4px">' + link + '</div>' : '') +
           '</div>';
       }).join('');
-      // Mark all as read after rendering (so UI shows them as read)
+      // Mark all as read after rendering
       setTimeout(function () {
-        if (API.markNotificationsRead) {
-          API.markNotificationsRead(State.currentUser.id).then(function () {
+        if (API.markAllRead) {
+          API.markAllRead().then(function () {
             body.querySelectorAll('.m-notif.unread').forEach(function (el) {
               el.classList.remove('unread');
             });
+            var mBadge2 = document.getElementById('mnav-badge');
+            if (mBadge2) mBadge2.setAttribute('hidden', '');
           }).catch(function(){});
         }
-      }, 300);
+      }, 400);
       // Bind clicks
       body.querySelectorAll('.m-notif-actor').forEach(function (el) {
         el.addEventListener('click', function () { Profile.open(el.dataset.uid); });
@@ -598,8 +610,7 @@ var Mobile = {
       '<div class="card-actions">' +
         '<button class="act-btn' + (liked ? ' is-liked' : '') + '" data-action="like" data-id="' + a.id + '">♥ <span>' + a.likes + '</span></button>' +
         '<button class="act-btn' + (saved ? ' is-saved' : '') + '" data-action="save" data-id="' + a.id + '">◈ <span>' + (a.saves || 0) + '</span></button>' +
-         +
-        '<button class="act-btn-read" data-action="open" data-id="' + a.id + '">阅读</button>'
+        '<button class="act-btn-read" data-action="open" data-id="' + a.id + '">阅读 &rsaquo;</button>' +
       '</div>' +
     '</div>';
   },
