@@ -116,6 +116,8 @@ var Mobile = {
     dRow.querySelectorAll('.tab-btn').forEach(function (btn) {
       var tab = btn.dataset.tab || btn.textContent.replace(/\d+/g, '').trim();
       var isFeed = btn.dataset.feed === 'following';
+      // Skip 关注 tab — it has its own bottom nav page
+      if (isFeed) return;
       var clone = document.createElement('button');
       clone.className = 'tab-btn m-tab' + (btn.classList.contains('active') ? ' active' : '');
       clone.textContent = btn.textContent;
@@ -123,11 +125,7 @@ var Mobile = {
         // Close any open page, go back to feed
         Mobile._showPage(null);
         Mobile._setActive('home');
-        if (isFeed) {
-          App.switchFeed('following');
-        } else {
-          App.switchTab(tab);
-        }
+        App.switchTab(tab);
         // Sync active on mobile tabs
         mRow.querySelectorAll('.m-tab').forEach(function (b) { b.classList.remove('active'); });
         clone.classList.add('active');
@@ -405,7 +403,7 @@ var Mobile = {
       // Bind logout
       var logoutBtn = document.getElementById('m-logout-btn');
       if (logoutBtn) {
-        logoutBtn.addEventListener('click', function () { Auth.logout(); Mobile.go('home'); });
+        logoutBtn.onclick = function () { Auth.doLogout(); Mobile.go('home'); };
       }
       // (notif read-all bound in _loadNotifPage)
     }
@@ -576,7 +574,7 @@ var Mobile = {
       '<div class="card-actions">' +
         '<button class="act-btn' + (liked ? ' is-liked' : '') + '" data-action="like" data-id="' + a.id + '">♥ <span>' + a.likes + '</span></button>' +
         '<button class="act-btn' + (saved ? ' is-saved' : '') + '" data-action="save" data-id="' + a.id + '">◈ <span>' + (a.saves || 0) + '</span></button>' +
-        '<button class="act-btn" data-action="comment" data-id="' + a.id + '">💬 <span>' + (a.commentsCount || 0) + '</span></button>' +
+         +
         '<button class="act-btn-read" data-action="open" data-id="' + a.id + '">阅读 →</button>' +
       '</div>' +
     '</div>';
@@ -606,7 +604,7 @@ var Mobile = {
     if (layout2) layout2.style.display = 'none';
     document.body.style.overflow = 'hidden';
     var bar = document.getElementById('m-comment-bar');
-    if (bar) bar.style.display = State.currentUser ? '' : 'none';
+    if (bar) bar.style.display = State.currentUser ? 'block' : 'none';
 
     API.getArticle(id).then(function (a) {
       API.recordView && API.recordView(id);
@@ -640,7 +638,7 @@ var Mobile = {
       '<div class="m-art-meta">' +
         '<span>' + esc(a.source) + '</span>' +
         '<span>' + formatDate(a.date) + '</span>' +
-        (a.authorId ? '<span class="m-art-author" data-uid="' + a.authorId + '">@' + esc(a.authorName || '匿名') + '</span>' : '') +
+        (a.authorId ? '<span class="m-art-author" data-uid="' + a.authorId + '">' + esc(a.authorName || '匿名') + '</span>' : '') +
       '</div>' +
       '<div class="m-art-actions">' +
         '<a class="m-art-read" href="' + (a.url || '#') + '" target="_blank" rel="noopener">阅读原文 ↗</a>' +
@@ -703,7 +701,7 @@ var Mobile = {
         Mobile._replyParentUser = btn.dataset.user;
         var banner = document.getElementById('m-reply-banner');
         var label  = document.getElementById('m-reply-label');
-        if (banner) banner.classList.add('active');
+        if (banner) { banner.style.display = 'flex'; banner.classList.add('active'); }
         if (label)  label.textContent = '回复 @' + btn.dataset.user;
         var ta = document.getElementById('m-comment-ta');
         if (ta) { ta.focus(); ta.placeholder = '回复 @' + btn.dataset.user + '…'; }
@@ -737,7 +735,7 @@ var Mobile = {
     Mobile._replyParentUser = null;
     var banner = document.getElementById('m-reply-banner');
     var ta = document.getElementById('m-comment-ta');
-    if (banner) banner.classList.remove('active');
+    if (banner) { banner.style.display = 'none'; banner.classList.remove('active'); }
     if (ta) ta.placeholder = '发表评论…';
   },
 
