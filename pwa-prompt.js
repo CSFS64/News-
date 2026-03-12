@@ -393,6 +393,38 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+
+/* ─── browser warning banner ─── */
+.fl-browser-warn {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: #141510;
+  border: 1px solid #3d4030;
+  border-left: 3px solid #c0392b;
+  border-radius: 10px; padding: 12px 13px;
+  margin-bottom: 10px;
+}
+.fl-browser-warn-icon { font-size: 18px; flex-shrink: 0; line-height: 1.3; }
+.fl-browser-warn-title {
+  font-size: 12px; font-weight: 700; color: #e8e9d8; margin-bottom: 3px;
+}
+.fl-browser-warn-sub { font-size: 10px; color: #6e7060; line-height: 1.5; }
+
+/* ─── copy link button ─── */
+.fl-copy-btn {
+  width: 100%; height: 42px;
+  background: #1a1c15; border: 1px solid #3d4030; border-radius: 10px;
+  font-family: 'Share Tech Mono', monospace; font-size: 12px;
+  color: #c8c9b8; cursor: pointer; letter-spacing: 0.5px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: all 0.15s ease; margin-bottom: 18px;
+  -webkit-tap-highlight-color: transparent;
+}
+.fl-copy-btn:active { background: #212318; border-color: #4a5230; }
+.fl-copy-btn.copied {
+  border-color: rgba(61,220,132,0.5);
+  color: #3ddc84;
+  background: rgba(61,220,132,0.05);
+}
 /* sheet entrance */
 #fl-pwa-sheet {
   animation: fl-sheet-rise 0.38s cubic-bezier(0.32,0.72,0,1) both;
@@ -457,12 +489,12 @@
         <div class="fl-os-card" id="fl-card-android">
           <div class="fl-os-card-icon android">🤖</div>
           <div class="fl-os-card-label">Android</div>
-          <div class="fl-os-card-sub">Chrome · 一键安装</div>
+          <div class="fl-os-card-sub">需使用 <strong style="color:#3ddc84">Chrome</strong> 打开</div>
         </div>
         <div class="fl-os-card" id="fl-card-ios">
           <div class="fl-os-card-icon ios"></div>
           <div class="fl-os-card-label">iPhone / iPad</div>
-          <div class="fl-os-card-sub">Safari · 三步完成</div>
+          <div class="fl-os-card-sub">需使用 <strong style="color:#78b4ff">Safari</strong> 打开</div>
         </div>
       </div>
 
@@ -472,6 +504,19 @@
     <!-- PHASE: Android -->
     <div id="fl-pwa-phase-android">
       <button class="fl-back-btn" id="fl-back-android">← 返回</button>
+
+      <!-- Chrome 要求横幅 -->
+      <div class="fl-browser-warn" id="fl-android-warn">
+        <div class="fl-browser-warn-icon">🟢</div>
+        <div class="fl-browser-warn-body">
+          <div class="fl-browser-warn-title">需使用 Chrome 浏览器</div>
+          <div class="fl-browser-warn-sub">安装功能仅 Chrome 支持。复制链接，在 Chrome 中打开本页</div>
+        </div>
+      </div>
+      <button class="fl-copy-btn" id="fl-copy-android">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        <span id="fl-copy-android-text">复制网页链接</span>
+      </button>
 
       <div class="fl-section-title">// 安装优势</div>
       <div class="fl-benefits">
@@ -527,6 +572,19 @@
     <!-- PHASE: iOS -->
     <div id="fl-pwa-phase-ios">
       <button class="fl-back-btn" id="fl-back-ios">← 返回</button>
+
+      <!-- Safari 要求横幅 -->
+      <div class="fl-browser-warn" id="fl-ios-warn">
+        <div class="fl-browser-warn-icon">🔵</div>
+        <div class="fl-browser-warn-body">
+          <div class="fl-browser-warn-title">需使用 Safari 浏览器</div>
+          <div class="fl-browser-warn-sub">仅 Safari 自带分享功能支持添加到主屏幕。复制链接，在 Safari 中打开</div>
+        </div>
+      </div>
+      <button class="fl-copy-btn" id="fl-copy-ios">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        <span id="fl-copy-ios-text">复制网页链接</span>
+      </button>
 
       <div class="fl-section-title">// 安装步骤 · Safari</div>
       <div class="fl-ios-steps" id="fl-ios-steps">
@@ -653,11 +711,58 @@
     }
   }
 
+  /* ── Copy link helper ── */
+  function copyLink(btnId, textId) {
+    var url = 'https://csfs64.github.io/News-/';
+    var textEl = document.getElementById(textId);
+    var btn    = document.getElementById(btnId);
+    function onCopied() {
+      if (btn)    btn.classList.add('copied');
+      if (textEl) textEl.textContent = '已复制！粘贴到浏览器打开';
+      setTimeout(function() {
+        if (btn)    btn.classList.remove('copied');
+        if (textEl) textEl.textContent = '复制网页链接';
+      }, 2500);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(onCopied).catch(function() {
+        fallbackCopy(url); onCopied();
+      });
+    } else { fallbackCopy(url); onCopied(); }
+  }
+  function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch(e) {}
+    document.body.removeChild(ta);
+  }
+
+  /* ── Detect current browser & show/hide warn banners ── */
+  function updateWarnBanners() {
+    var isChrome  = /chrome/i.test(ua) && !/edge|opr/i.test(ua);
+    var isSafari  = /safari/i.test(ua) && !/chrome|crios|fxios/i.test(ua);
+    // Android warn: hide if already on Chrome
+    var aw = document.getElementById('fl-android-warn');
+    var ca = document.getElementById('fl-copy-android');
+    if (aw && ca && isAndroid) {
+      if (isChrome) { aw.style.display='none'; ca.style.display='none'; }
+      // else: keep visible
+    }
+    // iOS warn: hide if already on Safari
+    var iw = document.getElementById('fl-ios-warn');
+    var ci = document.getElementById('fl-copy-ios');
+    if (iw && ci && isIOS) {
+      if (isSafari) { iw.style.display='none'; ci.style.display='none'; }
+    }
+  }
+
   /* ── Wire up after appending to DOM ── */
   function bindEvents() {
     /* OS select */
     document.getElementById('fl-card-android').addEventListener('click', function() {
       showPhase('fl-pwa-phase-android');
+      updateWarnBanners();
       // Show install button or manual fallback
       var installBtn = document.getElementById('fl-android-install-btn');
       var manual     = document.getElementById('fl-android-manual');
@@ -671,6 +776,7 @@
     });
     document.getElementById('fl-card-ios').addEventListener('click', function() {
       showPhase('fl-pwa-phase-ios');
+      updateWarnBanners();
     });
 
     /* Android install */
@@ -692,6 +798,12 @@
     /* Back buttons */
     document.getElementById('fl-back-android').addEventListener('click', function() { showPhase('fl-pwa-phase-select'); });
     document.getElementById('fl-back-ios').addEventListener('click', function()     { showPhase('fl-pwa-phase-select'); });
+
+    /* Copy link buttons */
+    var ca2 = document.getElementById('fl-copy-android');
+    if (ca2) ca2.addEventListener('click', function() { copyLink('fl-copy-android','fl-copy-android-text'); });
+    var ci2 = document.getElementById('fl-copy-ios');
+    if (ci2) ci2.addEventListener('click', function() { copyLink('fl-copy-ios','fl-copy-ios-text'); });
 
     /* Skip / dismiss */
     ['fl-skip-btn','fl-skip-android','fl-skip-ios'].forEach(function(id) {
