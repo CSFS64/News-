@@ -95,40 +95,14 @@ var Mobile = {
       '</button>';
   },
 
-  /* ── Build full-screen article page DOM (if not already in HTML) ── */
+  /* ── Article page already exists in HTML, just bind textarea ── */
   _buildArticlePage: function () {
-    if (document.getElementById('m-article-page')) return;
-    var el = document.createElement('div');
-    el.id = 'm-article-page';
-    el.innerHTML =
-      '<div id="m-article-topbar">' +
-        '<button id="m-article-back" onclick="Mobile.closeArticle()">←</button>' +
-        '<span id="m-article-label"></span>' +
-      '</div>' +
-      '<div id="m-article-body"></div>';
-    el.style.display = 'none';
-    document.body.appendChild(el);
-
-    var bar = document.createElement('div');
-    bar.id = 'm-comment-bar';
-    bar.innerHTML =
-      '<div id="m-reply-banner">' +
-        '<span id="m-reply-label"></span>' +
-        '<button id="m-reply-cancel" onclick="Mobile._cancelReply()">✕ 取消</button>' +
-      '</div>' +
-      '<div id="m-comment-row">' +
-        '<textarea id="m-comment-ta" placeholder="发表评论…" rows="1"></textarea>' +
-        '<button id="m-comment-send" onclick="Mobile.sendComment()">发送</button>' +
-      '</div>';
-    bar.style.display = 'none';
-    document.body.appendChild(bar);
-
-    // Auto-show/hide comment bar with article page
-    var ta = bar.querySelector('#m-comment-ta');
-    if (ta) {
+    var ta = document.getElementById('m-comment-ta');
+    if (ta && !ta._bound) {
+      ta._bound = true;
       ta.addEventListener('input', function () {
         ta.style.height = 'auto';
-        ta.style.height = Math.min(ta.scrollHeight, 100) + 'px';
+        ta.style.height = Math.min(ta.scrollHeight, 96) + 'px';
       });
     }
   },
@@ -223,7 +197,7 @@ var Mobile = {
     var hdr  = document.getElementById('mobile-header');
     var show = !pageId;
     if (feed) feed.style.display = show ? '' : 'none';
-    if (hdr)  hdr.style.display  = show ? '' : 'none';
+    if (hdr)  hdr.style.display  = show ? 'flex' : 'none';
   },
 
   /* ── Set active nav button ── */
@@ -624,12 +598,12 @@ var Mobile = {
 
     var page = document.getElementById('m-article-page');
     var body = document.getElementById('m-article-body');
-    var bar  = document.getElementById('m-comment-bar');
     if (!page || !body) return;
 
     body.innerHTML = '<div class="m-empty">加载中…</div>';
     page.style.display = 'flex'; page.classList.add('m-page-open');
-    if (bar) bar.style.display = State.currentUser ? 'block' : 'none';
+    var bar = document.getElementById('m-comment-bar');
+    if (bar) bar.style.display = State.currentUser ? '' : 'none';
 
     API.getArticle(id).then(function (a) {
       API.recordView && API.recordView(id);
@@ -680,7 +654,7 @@ var Mobile = {
     if (saveBtn) saveBtn.addEventListener('click', function () { Mobile._toggleSave(a.id, saveBtn); });
 
     // Bind author
-    body.querySelectorAll('.m-art-meta-author').forEach(function (el) {
+    body.querySelectorAll('.m-art-author').forEach(function (el) {
       el.addEventListener('click', function () { Profile.open(el.dataset.uid); });
     });
 
@@ -707,7 +681,7 @@ var Mobile = {
           '<span class="m-cmt-user" data-uid="' + c.userId + '">@' + esc(c.user) + '</span>' +
           '<span class="m-cmt-time">' + formatDate(c.date) + '</span>' +
           replyBtn +
-          '<button class="m-comment-like' + likedCmt + '" data-id="' + c.id + '">♥ ' + (c.likes || 0) + '</button>' +
+          '<button class="m-cmt-like' + likedCmt + '" data-id="' + c.id + '" data-aid="' + articleId + '">♥ <span>' + (c.likes || 0) + '</span></button>' +
         '</div>' +
         replyPrefix +
         '<div class="m-cmt-body">' + esc(c.text) + '</div>' +
@@ -735,7 +709,22 @@ var Mobile = {
     root.querySelectorAll('.m-cmt-like').forEach(function (btn) {
       btn.addEventListener('click', function () {
         if (!State.currentUser) { Toast.show('请先登录', true); return; }
-        Interactions.likeComment(articleId, btn.dataset.id, btn);
+        var cid = btn.dataset.id;
+        var aid = btn.dataset.aid || articleId;
+        var span = btn.querySelector('span');
+        var curLiked = btn.classList.contains('liked');
+        // Optimistic update
+        var curCount = parseInt(span ? span.textContent : btn.textContent.replace(/\D/g,'')) || 0;
+        btn.classList.toggle('liked', !curLiked);
+        if (span) span.textContent = curLiked ? Math.max(0, curCount-1) : curCount+1;
+        API.toggleCommentLike ? API.toggleCommentLike(aid, cid).then(function(r){
+          btn.classList.toggle('liked', r.liked);
+          if (span) span.textContent = r.likes !== undefined ? r.likes : (r.liked ? curCount+1 : Math.max(0,curCount-1));
+        }).catch(function(){
+          // revert
+          btn.classList.toggle('liked', curLiked);
+          if (span) span.textContent = curCount;
+        }) : Interactions.likeComment(aid, cid, btn);
       });
     });
   },
@@ -773,9 +762,7 @@ var Mobile = {
 
   closeArticle: function () {
     var page = document.getElementById('m-article-page');
-    var bar  = document.getElementById('m-comment-bar');
     if (page) { page.style.display = 'none'; page.classList.remove('m-page-open'); }
-    if (bar)  bar.style.display = 'none';
     Mobile._articleId = null;
     Mobile._cancelReply();
   },
@@ -783,38 +770,54 @@ var Mobile = {
   /* ── Like / Save helpers ── */
   _toggleLike: function (id, btn) {
     if (!State.currentUser) { Toast.show('请先登录', true); return; }
+    var span = btn.querySelector('span');
+    var curCount = parseInt(span ? span.textContent : '0') || 0;
+    var wasLiked = btn.classList.contains('liked');
+    // Optimistic update
+    btn.classList.toggle('liked', !wasLiked);
+    if (span) span.textContent = wasLiked ? Math.max(0, curCount-1) : curCount+1;
     API.toggleLike(id).then(function (r) {
-      var liked = r.liked;
-      var count = r.likes;
+      var liked = r.liked !== undefined ? r.liked : !wasLiked;
+      var count = r.likes !== undefined ? r.likes : (liked ? curCount+1 : Math.max(0,curCount-1));
       btn.classList.toggle('liked', liked);
-      var span = btn.querySelector('span');
       if (span) span.textContent = count;
-      if (liked) State.userLikes.push(id);
+      if (liked) { if (State.userLikes.indexOf(id)<0) State.userLikes.push(id); }
       else State.userLikes = State.userLikes.filter(function (x) { return x !== id; });
-      // Update feed cards too
       document.querySelectorAll('[data-action="like"][data-id="' + id + '"]').forEach(function(b){
         b.classList.toggle('is-liked', liked);
         var s = b.querySelector('span'); if(s) s.textContent = count;
       });
-    }).catch(function () { Toast.show('操作失败', true); });
+    }).catch(function () {
+      // revert
+      btn.classList.toggle('liked', wasLiked);
+      if (span) span.textContent = curCount;
+      Toast.show('操作失败', true);
+    });
   },
 
   _toggleSave: function (id, btn) {
     if (!State.currentUser) { Toast.show('请先登录', true); return; }
+    var span2 = btn.querySelector('span');
+    var curCount2 = parseInt(span2 ? span2.textContent : '0') || 0;
+    var wasSaved = btn.classList.contains('saved');
+    btn.classList.toggle('saved', !wasSaved);
+    if (span2) span2.textContent = wasSaved ? Math.max(0, curCount2-1) : curCount2+1;
     API.toggleSave(id).then(function (r) {
-      var saved = r.saved;
-      var count = r.saves;
+      var saved = r.saved !== undefined ? r.saved : !wasSaved;
+      var count = r.saves !== undefined ? r.saves : (saved ? curCount2+1 : Math.max(0,curCount2-1));
       btn.classList.toggle('saved', saved);
-      var span = btn.querySelector('span');
-      if (span) span.textContent = count;
-      if (saved) State.userSaves.push(id);
+      if (span2) span2.textContent = count;
+      if (saved) { if (State.userSaves.indexOf(id)<0) State.userSaves.push(id); }
       else State.userSaves = State.userSaves.filter(function (x) { return x !== id; });
-      // Update feed cards too
       document.querySelectorAll('[data-action="save"][data-id="' + id + '"]').forEach(function(b){
         b.classList.toggle('is-saved', saved);
         var s = b.querySelector('span'); if(s) s.textContent = count;
       });
-    }).catch(function () { Toast.show('操作失败', true); });
+    }).catch(function () {
+      btn.classList.toggle('saved', wasSaved);
+      if (span2) span2.textContent = curCount2;
+      Toast.show('操作失败', true);
+    });
   },
 
 };
