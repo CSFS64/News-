@@ -30,11 +30,11 @@ var Mobile = {
     Mobile._syncTabs();
     Mobile._setActive('home');
 
-    // Show mobile chrome
+    // Show mobile chrome with intro animations
     var hdr = document.getElementById('mobile-header');
     var nav = document.getElementById('mobile-nav');
-    if (hdr) hdr.style.display = 'flex';
-    if (nav) nav.style.display = 'flex';
+    if (hdr) { hdr.style.display = 'flex'; hdr.classList.add('m-hdr-ready'); }
+    if (nav) { nav.style.display = 'flex'; nav.classList.add('m-nav-ready'); }
 
     // Keep tabs in sync when desktop tabs re-render
     var desktopTabs = document.getElementById('tabs-row');
@@ -195,10 +195,22 @@ var Mobile = {
       if (!el) return;
       if (id === pageId) {
         el.style.display = 'flex';
+        // Trigger enter animation
+        el.classList.remove('m-page-open');
+        void el.offsetWidth; // force reflow
         el.classList.add('m-page-open');
       } else {
-        el.style.display = 'none';
-        el.classList.remove('m-page-open');
+        // Fade out then hide
+        if (el.classList.contains('m-page-open')) {
+          el.classList.add('m-page-exit');
+          el.classList.remove('m-page-open');
+          setTimeout(function () {
+            el.style.display = 'none';
+            el.classList.remove('m-page-exit');
+          }, 180);
+        } else {
+          el.style.display = 'none';
+        }
       }
     });
     // Show/hide feed + topbar
@@ -207,7 +219,6 @@ var Mobile = {
     var show = !pageId;
     if (feed) feed.style.display = show ? '' : 'none';
     if (hdr)  hdr.style.display  = show ? 'flex' : 'none';
-    // Prevent body scroll when a page is open (fixes notch bleed)
     document.body.style.overflow = show ? '' : 'hidden';
   },
 
@@ -215,7 +226,18 @@ var Mobile = {
   _setActive: function (tab) {
     ['home', 'following', 'notif', 'me'].forEach(function (t) {
       var el = document.getElementById('mnav-' + t);
-      if (el) el.classList.toggle('m-active', t === tab);
+      if (!el) return;
+      var wasActive = el.classList.contains('m-active');
+      el.classList.toggle('m-active', t === tab);
+      // Bounce the icon when newly activated
+      if (t === tab && !wasActive) {
+        var ico = el.querySelector('.mnav-icon');
+        if (ico) {
+          ico.classList.remove('mnav-bounce');
+          void ico.offsetWidth;
+          ico.classList.add('mnav-bounce');
+        }
+      }
     });
     Mobile._active = tab;
   },
@@ -326,6 +348,7 @@ var Mobile = {
         return;
       }
       body.innerHTML = arts.map(function (a) { return Mobile._cardHTML(a); }).join('');
+      Mobile._staggerCards(body);
       // Bind card clicks (same guard as _bindFeedCards - skip buttons/links)
       body.querySelectorAll('.m-card[data-id]').forEach(function (el) {
         el.addEventListener('click', function (e) {
@@ -395,6 +418,7 @@ var Mobile = {
           (link ? '<div style="margin-top:4px">' + link + '</div>' : '') +
           '</div>';
       }).join('');
+      Mobile._staggerCards(body);
       // Mark all as read after rendering
       setTimeout(function () {
         if (API.markAllRead) {
@@ -628,7 +652,10 @@ var Mobile = {
     if (!page || !body) return;
 
     body.innerHTML = '<div class="m-empty">加载中…</div>';
-    page.style.display = 'flex'; page.classList.add('m-page-open');
+    page.style.display = 'flex';
+    page.classList.remove('m-page-open', 'm-art-slide-in');
+    void page.offsetWidth; // force reflow
+    page.classList.add('m-page-open', 'm-art-slide-in');
     // Hide top bar and nav while article is open
     var hdr2 = document.getElementById('mobile-header');
     var nav2 = document.getElementById('mobile-nav');
@@ -666,6 +693,7 @@ var Mobile = {
     if (a.featured)   tags += '<span class="tag tag-featured">★ FEATURED</span>';
 
     var body = document.getElementById('m-article-body');
+    body.style.opacity = '0';
     body.innerHTML =
       (tags ? '<div class="m-art-tags">' + tags + '</div>' : '') +
       '<div class="m-art-title">' + esc(a.title) + '</div>' +
@@ -696,6 +724,12 @@ var Mobile = {
 
     // Bind comment likes & reply buttons
     Mobile._bindCommentActions(body, a.id);
+
+    // Fade in content
+    requestAnimationFrame(function () {
+      body.style.transition = 'opacity 0.22s ease';
+      body.style.opacity = '1';
+    });
 
     // Reset comment bar
     var ta = document.getElementById('m-comment-ta');
@@ -765,6 +799,21 @@ var Mobile = {
     });
   },
 
+  /* ── Stagger animate a container's direct children ── */
+  _staggerCards: function (container) {
+    var items = container.querySelectorAll('.news-card, .m-item, .m-notif, .m-cmt');
+    items.forEach(function (el, i) {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(10px)';
+      el.style.transition = 'none';
+      setTimeout(function () {
+        el.style.transition = 'opacity 0.18s ease, transform 0.18s ease';
+        el.style.opacity = '1';
+        el.style.transform = 'translateY(0)';
+      }, i * 35);
+    });
+  },
+
   _cancelReply: function () {
     Mobile._replyParentId = null;
     Mobile._replyParentUser = null;
@@ -776,6 +825,8 @@ var Mobile = {
 
   sendComment: function () {
     if (!State.currentUser) { Toast.show('请先登录', true); return; }
+    var sendBtn = document.getElementById('m-comment-send');
+    if (sendBtn) { sendBtn.classList.add('m-btn-pop'); setTimeout(function(){ sendBtn.classList.remove('m-btn-pop'); }, 350); }
     var ta = document.getElementById('m-comment-ta');
     var text = ta ? ta.value.trim() : '';
     if (!text) { Toast.show('评论不能为空', true); return; }
@@ -798,10 +849,10 @@ var Mobile = {
 
   closeArticle: function () {
     var page = document.getElementById('m-article-page');
-    if (page) { page.style.display = 'none'; page.classList.remove('m-page-open'); }
+    if (!page) return;
     Mobile._articleId = null;
     Mobile._cancelReply();
-    // Restore chrome based on which page we were on
+    // Restore chrome immediately so it appears during slide-out
     var nav2 = document.getElementById('mobile-nav');
     document.body.style.overflow = '';
     if (nav2) nav2.style.display = 'flex';
@@ -811,10 +862,16 @@ var Mobile = {
       if (hdr2) hdr2.style.display = 'flex';
       if (layout2) layout2.style.display = '';
     } else {
-      // Re-show the page we came from
       var pageEl = document.getElementById('m-page-' + Mobile._active);
       if (pageEl) pageEl.style.display = 'flex';
     }
+    // Slide page out to the right, then hide
+    page.classList.remove('m-art-slide-in');
+    page.classList.add('m-art-slide-out');
+    setTimeout(function () {
+      page.style.display = 'none';
+      page.classList.remove('m-page-open', 'm-art-slide-out');
+    }, 240);
   },
 
   /* ── Like / Save helpers ── */
@@ -823,6 +880,9 @@ var Mobile = {
     var span = btn.querySelector('span');
     var curCount = parseInt(span ? span.textContent : '0') || 0;
     var wasLiked = btn.classList.contains('liked');
+    // Tactile pop
+    btn.classList.add('m-btn-pop');
+    setTimeout(function () { btn.classList.remove('m-btn-pop'); }, 350);
     // Optimistic update
     btn.classList.toggle('liked', !wasLiked);
     if (span) span.textContent = wasLiked ? Math.max(0, curCount-1) : curCount+1;
