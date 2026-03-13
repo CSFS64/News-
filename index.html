@@ -40,6 +40,7 @@
     }).then(function(s){
       var j=s.toJSON();
       var token=localStorage.getItem('fl_token');
+      try { var t=JSON.parse(token); if(typeof t==='string') token=t; } catch(e){}
       alert('token前20字:' + (token ? token.slice(0,20) : 'null'));
       return fetch('https://frontline-backend.20060303jjc.workers.dev/push/subscribe',{
         method:'POST',
