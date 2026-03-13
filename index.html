@@ -438,21 +438,26 @@
     }
 
     function getToken() {
-      try { return JSON.parse(localStorage.getItem('fl_token') || 'null'); } catch(e) { return null; }
+      try {
+        var raw = localStorage.getItem('fl_token');
+        if (!raw) return null;
+        // Stored as plain string or JSON string
+        try { var p = JSON.parse(raw); return typeof p === 'string' ? p : raw; } catch(e) { return raw; }
+      } catch(e) { return null; }
     }
 
     function subscribePush(reg) {
       var token = getToken();
-      if (!token) return; // not logged in — skip
+      if (!token) return;
       reg.pushManager.getSubscription().then(function (existing) {
-        if (existing) return sendSubscription(existing, token); // already subscribed
+        if (existing) { sendSubscription(existing, token); return; }
         return reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlB64ToUint8Array(VAPID_PUBLIC_KEY)
         }).then(function (sub) {
           sendSubscription(sub, token);
         });
-      }).catch(function () {});
+      }).catch(function (e) { console.warn('Push subscribe error:', e); });
     }
 
     function sendSubscription(sub, token) {
