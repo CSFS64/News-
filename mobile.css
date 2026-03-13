@@ -543,7 +543,7 @@ input, textarea, select { font-size: 16px !important; }
   display: flex; flex-direction: column;
   justify-content: flex-end;
   padding: 8px 14px;
-  padding-bottom: max(14px, env(safe-area-inset-bottom, 14px));
+  padding-bottom: max(20px, env(safe-area-inset-bottom, 20px));
   /* Keyboard movement via transform */
   transform: translateY(0);
   will-change: transform;
