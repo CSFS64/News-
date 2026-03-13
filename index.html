@@ -33,7 +33,7 @@
   <button onclick="window.FL_requestPush&&window.FL_requestPush()" style="position:fixed;top:100px;right:10px;z-index:99999;background:#4a5230;color:#fff;border:none;padding:8px 12px;border-radius:8px;font-size:12px;cursor:pointer">开启推送</button>
   <button onclick="Notification.requestPermission().then(function(p){alert('result:'+p)})" style="position:fixed;top:140px;right:10px;z-index:99999;background:#2c3e50;color:#fff;border:none;padding:8px 12px;border-radius:8px;font-size:12px;cursor:pointer">原生测试</button>
   <button onclick="
-    var VAPID='ssiNNUd7uyK31Le7zAyMk4I7e8hCrRm-Ze2ZA_6w7H6WeuniAFRvbQRDr86o_5v-KTnFSKrD9lZQAnqaZyQUWw';
+    var VAPID='BLZ7Sv5SfdRvRqQemZqmgPNLkO6B9yehyGqYB3pV758ngG1LLbtwTaKdZ3sD6D8WIrjU0_EPwvkx7XvR7i6Ltjg';
     function b(s){var p='='.repeat((4-s.length%4)%4);var b=atob((s+p).replace(/-/g,'+').replace(/_/g,'/'));var a=new Uint8Array(b.length);for(var i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a;}
     navigator.serviceWorker.ready.then(function(r){
       return r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b(VAPID)});
@@ -450,7 +450,7 @@
   <script>
   /* ── Service Worker registration + Push subscription ── */
   (function () {
-    var VAPID_PUBLIC_KEY = 'ssiNNUd7uyK31Le7zAyMk4I7e8hCrRm-Ze2ZA_6w7H6WeuniAFRvbQRDr86o_5v-KTnFSKrD9lZQAnqaZyQUWw';
+    var VAPID_PUBLIC_KEY = 'BLZ7Sv5SfdRvRqQemZqmgPNLkO6B9yehyGqYB3pV758ngG1LLbtwTaKdZ3sD6D8WIrjU0_EPwvkx7XvR7i6Ltjg';
     var API_BASE = 'https://frontline-backend.20060303jjc.workers.dev';
 
     if (!('serviceWorker' in navigator)) return;
