@@ -400,12 +400,15 @@
     <div id="m-article-body"></div>
     <div id="m-comment-bar" style="display:none">
       <div id="m-reply-banner" style="display:none">
+        <span class="fl-reply-icon">↩</span>
         <span id="m-reply-label"></span>
         <button id="m-reply-cancel" onclick="Mobile._cancelReply()">✕</button>
       </div>
       <div id="m-comment-row">
         <textarea id="m-comment-ta" placeholder="发表评论…" rows="1"></textarea>
-        <button id="m-comment-send" onclick="Mobile.sendComment()">发送</button>
+        <button id="m-comment-send" onclick="Mobile.sendComment()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
       </div>
     </div>
   </div>
