@@ -654,6 +654,7 @@ var Mobile = {
             btn.addEventListener('click', function () {
               API.toggleSave(btn.dataset.id).then(function () {
                 btn.closest('.m-item').remove();
+                 State.userSaves = State.userSaves.filter(function(x){ return x !== rid; });
                 App.renderFeed(); Toast.show('已取消收藏');
               }).catch(function () { Toast.show('操作失败', true); });
             });
