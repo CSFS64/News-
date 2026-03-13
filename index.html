@@ -22,6 +22,15 @@
   <!-- GRAIN OVERLAY -->
   <div id="grain"></div>
 
+  <!-- TEMP DEBUG — remove after testing -->
+  <button onclick="
+    navigator.serviceWorker.ready.then(function(r){
+      r.pushManager.getSubscription().then(function(s){
+        alert('permission:'+Notification.permission+'\nstandalone:'+navigator.standalone+'\nPushManager:'+(typeof PushManager)+'\nsub:'+(s?s.endpoint.slice(0,40):'null'));
+      });
+    }).catch(function(e){ alert('SW error:'+e); });
+  " style="position:fixed;top:60px;right:10px;z-index:99999;background:#c0392b;color:#fff;border:none;padding:8px 12px;border-radius:8px;font-size:12px;cursor:pointer">诊断</button>
+
   <!-- ══ ALERT TICKER ══ -->
   <div id="alert-bar">
     <span class="alert-pill">⬤ LIVE</span>
