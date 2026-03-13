@@ -525,99 +525,111 @@ input, textarea, select { font-size: 16px !important; }
   font-size: 14px; color: var(--text); line-height: 1.65;
 }
 
-/* Comment input bar */
-/* ── Comment bar: fixed above keyboard ── */
+/* ══ Comment bar — same height as nav bar ══
+   Fixed to bottom, moves UP via transform when keyboard opens.
+   Height is fixed: 82px content zone + safe-area. Never grows.
+   Input sits flush at the top of the 82px zone with 8px breathing room.
+═══════════════════════════════════════════════════════════════════════ */
 #m-comment-bar {
   position: fixed;
   left: 0; right: 0; bottom: 0;
   z-index: 360;
+  /* Exact same height as #mobile-nav */
+  height: calc(82px + env(safe-area-inset-bottom, 0px));
   background: var(--bg2);
   border-top: 1px solid var(--border);
-  padding: 10px 14px;
-  padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
-  box-shadow: 0 -8px 32px rgba(0,0,0,0.55);
-  display: flex; flex-direction: column; gap: 0;
-  transition: box-shadow 0.2s ease;
-  /* subtle top edge glow on focus */
+  box-shadow: 0 -6px 24px rgba(0,0,0,0.5);
+  /* Content starts at top of the 82px zone */
+  display: flex; flex-direction: column;
+  justify-content: flex-start;
+  padding: 8px 14px 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* Keyboard movement via transform — smoother than changing bottom */
+  transform: translateY(0);
+  will-change: transform;
+  transition: transform 0.22s cubic-bezier(0.32, 0.72, 0, 1),
+              border-top-color 0.18s ease,
+              box-shadow 0.18s ease;
 }
 #m-comment-bar.bar-active {
-  border-top-color: rgba(107,117,66,0.5);
-  box-shadow: 0 -8px 32px rgba(0,0,0,0.6), 0 -1px 0 rgba(107,117,66,0.25);
+  border-top-color: rgba(107,117,66,0.45);
+  box-shadow: 0 -6px 24px rgba(0,0,0,0.55), 0 -1px 0 rgba(107,117,66,0.2);
 }
 
-/* Reply banner — compact pill style */
+/* Reply banner — sits above the input row, slides down */
 #m-reply-banner {
   display: none; /* JS sets display:flex */
-  align-items: center; gap: 8px;
-  background: rgba(192,57,43,0.08);
-  border: 1px solid rgba(192,57,43,0.2);
-  border-radius: 8px;
-  padding: 6px 10px;
-  margin-bottom: 8px;
-  font-size: 11px; color: var(--text-dim);
+  align-items: center; gap: 7px;
+  background: rgba(192,57,43,0.07);
+  border: 1px solid rgba(192,57,43,0.18);
+  border-radius: 7px;
+  padding: 5px 10px;
+  margin-bottom: 6px;
+  flex-shrink: 0;
   overflow: hidden;
 }
 #m-reply-banner .fl-reply-icon {
-  font-size: 12px; color: var(--red); flex-shrink: 0;
+  font-size: 11px; color: var(--red); flex-shrink: 0;
 }
 #m-reply-label {
-  flex: 1; color: var(--text); font-size: 11px;
+  flex: 1; color: var(--text-dim); font-size: 11px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 #m-reply-cancel {
-  margin-left: auto; background: none; border: none;
-  color: var(--text-dim); font-size: 14px; line-height: 1;
+  background: none; border: none;
+  color: var(--text-dim); font-size: 15px; line-height: 1;
   cursor: pointer; -webkit-tap-highlight-color: transparent;
-  padding: 2px 4px; flex-shrink: 0;
+  padding: 0 2px; flex-shrink: 0;
   transition: color 0.12s;
 }
 #m-reply-cancel:active { color: var(--red); }
 
 /* Input row */
 #m-comment-row {
-  display: flex; gap: 8px; align-items: flex-end;
+  display: flex; gap: 8px; align-items: center;
+  flex: 1;
 }
 #m-comment-ta {
   flex: 1;
   background: var(--bg3);
   border: 1px solid var(--border2);
   border-radius: 20px;
-  padding: 10px 16px;
+  padding: 9px 16px;
   color: var(--text);
-  font-size: 15px; resize: none;
-  min-height: 40px; max-height: 120px;
-  outline: none; line-height: 1.45;
+  font-size: 15px;
+  /* Single line only — no resize, no growth */
+  resize: none; overflow: hidden;
+  height: 40px; line-height: 22px;
+  outline: none;
   transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
   font-family: system-ui, -apple-system, sans-serif;
   -webkit-appearance: none;
+  /* Prevent textarea from triggering page scroll */
+  overscroll-behavior: none;
 }
 #m-comment-ta::placeholder { color: var(--text-dim); }
 #m-comment-ta:focus {
   border-color: rgba(107,117,66,0.6);
   background: var(--bg4);
-  box-shadow: 0 0 0 3px rgba(107,117,66,0.1);
+  box-shadow: 0 0 0 3px rgba(107,117,66,0.08);
 }
 
-/* Send button */
+/* Send button — circle, same vertical center as input */
 #m-comment-send {
   flex-shrink: 0;
   width: 40px; height: 40px;
   border-radius: 50%;
   background: var(--red); border: none;
-  color: #fff; font-size: 18px;
+  color: #fff;
   cursor: pointer; -webkit-tap-highlight-color: transparent;
   display: flex; align-items: center; justify-content: center;
-  transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
-  box-shadow: 0 2px 10px rgba(192,57,43,0.35);
-  margin-bottom: 2px;
+  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+  box-shadow: 0 2px 10px rgba(192,57,43,0.3);
 }
-#m-comment-send:active {
-  transform: scale(0.92);
-  box-shadow: 0 1px 4px rgba(192,57,43,0.3);
-}
+#m-comment-send:active { transform: scale(0.88); }
 #m-comment-bar.bar-active #m-comment-send {
   background: var(--red-hot);
-  box-shadow: 0 3px 14px rgba(232,64,64,0.45);
+  box-shadow: 0 2px 14px rgba(232,64,64,0.4);
 }
 
 /* ════════════════════════════════════════════════════════
