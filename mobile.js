@@ -141,10 +141,13 @@ var Mobile = {
       }
       window.visualViewport.addEventListener('resize', onViewport);
       window.visualViewport.addEventListener('scroll', onViewport);
+      var artBody = document.getElementById('m-article-body');
+      if (artBody) artBody.addEventListener('scroll', onViewport);
       Mobile._vvCleanup = function () {
         window.visualViewport.removeEventListener('resize', onViewport);
         window.visualViewport.removeEventListener('scroll', onViewport);
-        if (bar) bar.style.transform = 'translateY(0)';
+         if (artBody) artBody.removeEventListener('scroll', onViewport);
+         if (bar) bar.style.transform = 'translateY(0)';
       };
     }
   },
