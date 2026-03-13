@@ -56,8 +56,8 @@ var API = (function () {
    * Change API_MODE to 'remote' and set API_BASE_URL to enable
    * a real backend. JWT token is stored in localStorage.
    * ──────────────────────────────────────────────────────────── */
-  var API_MODE     = 'remote';           // 'local' | 'remote'  ← change to 'remote' when deploying
-  var API_BASE_URL = 'https://frontline-backend.20060303jjc.workers.dev'; // ← your Worker URL
+  var API_MODE     = 'local';           // 'local' | 'remote'  ← change to 'remote' when deploying
+  var API_BASE_URL = 'https://your-worker.your-subdomain.workers.dev'; // ← your Worker URL
 
   // Token key in localStorage
   var TOKEN_KEY = 'fl_token';
@@ -376,7 +376,14 @@ var API = (function () {
 
     login: function (email, password) {
       return http('POST', '/auth/login', { email, password })
-        .then(function(r){ LS.set('fl_token', r.token); LS.set('fl_session', r.user); return r; });
+        .then(function(r){
+          LS.set('fl_token', r.token); LS.set('fl_session', r.user);
+          // Request push permission after login
+          setTimeout(function () {
+            if (window.FL_requestPush) window.FL_requestPush();
+          }, 1500);
+          return r;
+        });
     },
 
     logout: function () {
@@ -400,11 +407,7 @@ var API = (function () {
       return http('GET', '/articles' + (params.length ? '?' + params.join('&') : ''));
     },
     getArticle:     function (id)   { return http('GET', '/articles/' + id); },
-    publishArticle: function (data) {
-      var payload = Object.assign({}, data, { description: data.desc });
-      delete payload.desc;
-      return http('POST', '/articles', payload);
-    },
+    publishArticle: function (data) { return http('POST', '/articles', data); },
     deleteArticle:  function (id)   { return http('DELETE', '/articles/' + id); },
     toggleLike:     function (aid)  { return http('POST', '/articles/' + aid + '/like'); },
     toggleSave:     function (aid)  { return http('POST', '/articles/' + aid + '/save'); },
