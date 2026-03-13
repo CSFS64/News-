@@ -110,7 +110,6 @@ var Mobile = {
   _buildArticlePage: function () {
     var ta   = document.getElementById('m-comment-ta');
     var bar  = document.getElementById('m-comment-bar');
-    var body = document.getElementById('m-article-body');
     if (!ta || ta._bound) return;
     ta._bound = true;
 
@@ -121,43 +120,70 @@ var Mobile = {
       Mobile._syncBodyPad();
     });
 
-    /* Focus: expand bar, add active class */
+    /* Focus / blur: active class for styling */
     ta.addEventListener('focus', function () {
       if (bar) bar.classList.add('bar-active');
     });
     ta.addEventListener('blur', function () {
       if (bar) bar.classList.remove('bar-active');
-      // small delay so send button tap registers first
-      setTimeout(function () { Mobile._syncBodyPad(); }, 100);
+      setTimeout(Mobile._syncBodyPad, 150);
     });
 
-    /* visualViewport: track keyboard height so bar floats above keyboard */
+    /* ── visualViewport keyboard tracking ──
+       iOS fires both 'resize' and 'scroll' on the viewport when keyboard
+       appears; Android Chrome fires only 'resize'. We listen to both and
+       also run a short rAF poll right after focus to catch slow keyboards. */
     if (window.visualViewport) {
+      var _rafId = null;
       function onViewport() {
-        var vv = window.visualViewport;
-        var kbHeight = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-        if (bar) {
-          bar.style.bottom = kbHeight + 'px';
-          bar.style.transition = 'bottom 0.15s ease';
-        }
-        Mobile._syncBodyPad();
+        if (_rafId) cancelAnimationFrame(_rafId);
+        _rafId = requestAnimationFrame(function () {
+          var vv = window.visualViewport;
+          /* kbHeight = space below the visual viewport (keyboard area) */
+          var kbHeight = Math.max(0,
+            window.innerHeight - (vv.offsetTop + vv.height));
+          /* Also compensate for any viewport scroll offset (iOS quirk) */
+          var offsetCorrection = vv.offsetTop || 0;
+          var totalBottom = kbHeight + offsetCorrection;
+          if (bar) {
+            bar.style.transition = 'bottom 0.12s ease';
+            bar.style.bottom = totalBottom + 'px';
+          }
+          Mobile._syncBodyPad();
+          _rafId = null;
+        });
       }
+
+      /* Poll for ~600ms after focus to handle slow iOS keyboard animations */
+      function pollAfterFocus() {
+        var start = Date.now();
+        function tick() {
+          onViewport();
+          if (Date.now() - start < 600) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+      }
+
       window.visualViewport.addEventListener('resize', onViewport);
       window.visualViewport.addEventListener('scroll', onViewport);
+      ta.addEventListener('focus', pollAfterFocus);
+
       Mobile._vvCleanup = function () {
         window.visualViewport.removeEventListener('resize', onViewport);
         window.visualViewport.removeEventListener('scroll', onViewport);
+        if (_rafId) cancelAnimationFrame(_rafId);
       };
     }
   },
 
-  /* ── Sync article body bottom padding to match comment bar height ── */
+  /* ── Sync article body bottom padding so content isn't hidden under bar ── */
   _syncBodyPad: function () {
     var bar  = document.getElementById('m-comment-bar');
     var body = document.getElementById('m-article-body');
     if (!bar || !body) return;
-    var barH = bar.offsetHeight + (parseFloat(bar.style.bottom) || 0);
-    body.style.paddingBottom = barH + 'px';
+    var bottom  = parseFloat(bar.style.bottom) || 0;
+    var barH    = bar.offsetHeight;
+    body.style.paddingBottom = (barH + bottom + 8) + 'px';
   },
 
   /* ── Sync tabs from desktop tabs-row into mobile #m-tabs-row ── */
