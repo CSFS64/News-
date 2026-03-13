@@ -40,6 +40,7 @@
     }).then(function(s){
       var j=s.toJSON();
       var token=localStorage.getItem('fl_token');
+      alert('token前20字:' + (token ? token.slice(0,20) : 'null'));
       return fetch('https://frontline-backend.20060303jjc.workers.dev/push/subscribe',{
         method:'POST',
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
