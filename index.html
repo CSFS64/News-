@@ -491,6 +491,11 @@
 
       document.getElementById('fl-push-allow').addEventListener('click', function () {
         banner.remove();
+        // Already granted — just subscribe directly, don't request again
+        if (Notification.permission === 'granted') {
+          subscribePush(reg);
+          return;
+        }
         Notification.requestPermission().then(function (perm) {
           if (perm === 'granted') subscribePush(reg);
         });
@@ -531,6 +536,10 @@
         setTimeout(function () { checkAndPromptPush(reg); }, 2000);
         window.FL_requestPush = function () {
           if (!('PushManager' in window)) return;
+          if (Notification.permission === 'granted') {
+            subscribePush(reg);
+            return;
+          }
           Notification.requestPermission().then(function (perm) {
             if (perm === 'granted') subscribePush(reg);
             else showPushBanner(reg);
