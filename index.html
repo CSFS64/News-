@@ -503,6 +503,28 @@
 
       document.getElementById('fl-push-allow').addEventListener('click', function () {
         banner.remove();
+        var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+        var isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+        // iOS Safari in browser mode can't request push permission — must be installed first
+        if (isIOS && !isStandalone) {
+          var tip = document.createElement('div');
+          tip.style.cssText = [
+            'position:fixed;bottom:0;left:0;right:0;z-index:8000',
+            'background:#1a1c15;border-top:2px solid #c0392b',
+            'padding:14px 16px;font-family:"Share Tech Mono",monospace',
+            'font-size:12px;color:#c8c9b8;box-shadow:0 -4px 20px rgba(0,0,0,0.5)',
+            'animation:fl-banner-up 0.3s cubic-bezier(0.32,0.72,0,1) both'
+          ].join(';');
+          tip.innerHTML =
+            '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
+              '<span style="color:#c0392b">// iOS 推送须知</span>' +
+              '<button onclick="this.closest(\'div[style]\').remove()" style="background:none;border:none;color:#6e7060;font-size:18px;cursor:pointer">✕</button>' +
+            '</div>' +
+            '<div style="color:#c8c9b8;line-height:1.6">iOS 需要先将战线快报<strong style="color:#e8e9d8">添加到主屏幕</strong>，' +
+            '然后从桌面图标打开，才能开启推送通知</div>';
+          document.body.appendChild(tip);
+          return;
+        }
         Notification.requestPermission().then(function (perm) {
           if (perm === 'granted') subscribePush(reg);
         });
