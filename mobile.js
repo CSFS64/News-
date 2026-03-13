@@ -121,6 +121,13 @@ var Mobile = {
       if (bar) bar.classList.remove('bar-active');
     });
 
+    /* Auto-resize textarea upward — bar grows, never shrinks below min-height */
+    ta.addEventListener('input', function () {
+      ta.style.height = 'auto';
+      ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+      Mobile._syncBodyPad();
+    });
+
     /* ── visualViewport: move bar up with transform when keyboard opens ──
        Bar is fixed height. We shift it up by exactly the keyboard height
        using translateY so it sits flush above the keyboard.
