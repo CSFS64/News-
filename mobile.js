@@ -108,14 +108,56 @@ var Mobile = {
 
   /* ── Article page already exists in HTML, just bind textarea ── */
   _buildArticlePage: function () {
-    var ta = document.getElementById('m-comment-ta');
-    if (ta && !ta._bound) {
-      ta._bound = true;
-      ta.addEventListener('input', function () {
-        ta.style.height = 'auto';
-        ta.style.height = Math.min(ta.scrollHeight, 96) + 'px';
-      });
+    var ta   = document.getElementById('m-comment-ta');
+    var bar  = document.getElementById('m-comment-bar');
+    var body = document.getElementById('m-article-body');
+    if (!ta || ta._bound) return;
+    ta._bound = true;
+
+    /* Auto-resize textarea */
+    ta.addEventListener('input', function () {
+      ta.style.height = 'auto';
+      ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+      Mobile._syncBodyPad();
+    });
+
+    /* Focus: expand bar, add active class */
+    ta.addEventListener('focus', function () {
+      if (bar) bar.classList.add('bar-active');
+    });
+    ta.addEventListener('blur', function () {
+      if (bar) bar.classList.remove('bar-active');
+      // small delay so send button tap registers first
+      setTimeout(function () { Mobile._syncBodyPad(); }, 100);
+    });
+
+    /* visualViewport: track keyboard height so bar floats above keyboard */
+    if (window.visualViewport) {
+      function onViewport() {
+        var vv = window.visualViewport;
+        var kbHeight = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+        if (bar) {
+          bar.style.bottom = kbHeight + 'px';
+          bar.style.transition = 'bottom 0.15s ease';
+        }
+        Mobile._syncBodyPad();
+      }
+      window.visualViewport.addEventListener('resize', onViewport);
+      window.visualViewport.addEventListener('scroll', onViewport);
+      Mobile._vvCleanup = function () {
+        window.visualViewport.removeEventListener('resize', onViewport);
+        window.visualViewport.removeEventListener('scroll', onViewport);
+      };
     }
+  },
+
+  /* ── Sync article body bottom padding to match comment bar height ── */
+  _syncBodyPad: function () {
+    var bar  = document.getElementById('m-comment-bar');
+    var body = document.getElementById('m-article-body');
+    if (!bar || !body) return;
+    var barH = bar.offsetHeight + (parseFloat(bar.style.bottom) || 0);
+    body.style.paddingBottom = barH + 'px';
   },
 
   /* ── Sync tabs from desktop tabs-row into mobile #m-tabs-row ── */
@@ -608,7 +650,6 @@ var Mobile = {
             btn.addEventListener('click', function () {
               API.toggleSave(btn.dataset.id).then(function () {
                 btn.closest('.m-item').remove();
-                State.userSaves = State.userSaves.filter(function(x){ return x !== rid; });
                 App.renderFeed(); Toast.show('已取消收藏');
               }).catch(function () { Toast.show('操作失败', true); });
             });
@@ -667,7 +708,11 @@ var Mobile = {
     if (layout2) layout2.style.display = 'none';
     document.body.style.overflow = 'hidden';
     var bar = document.getElementById('m-comment-bar');
-    if (bar) bar.style.display = State.currentUser ? 'block' : 'none';
+    if (bar) {
+      bar.style.display = State.currentUser ? 'flex' : 'none';
+      bar.style.bottom = '0px';
+      bar.classList.remove('bar-active');
+    }
 
     API.getArticle(id).then(function (a) {
       API.recordView && API.recordView(id);
@@ -773,6 +818,7 @@ var Mobile = {
         var label  = document.getElementById('m-reply-label');
         if (banner) { banner.style.display = 'flex'; banner.classList.add('active'); }
         if (label)  label.textContent = '回复 @' + btn.dataset.user;
+        setTimeout(Mobile._syncBodyPad, 50);
         var ta = document.getElementById('m-comment-ta');
         if (ta) { ta.focus(); ta.placeholder = '回复 @' + btn.dataset.user + '…'; }
       });
@@ -821,7 +867,8 @@ var Mobile = {
     var banner = document.getElementById('m-reply-banner');
     var ta = document.getElementById('m-comment-ta');
     if (banner) { banner.style.display = 'none'; banner.classList.remove('active'); }
-    if (ta) ta.placeholder = '发表评论…';
+    if (ta) { ta.placeholder = '发表评论…'; }
+    setTimeout(Mobile._syncBodyPad, 50);
   },
 
   sendComment: function () {
@@ -837,6 +884,7 @@ var Mobile = {
       .then(function () {
         if (ta) { ta.value = ''; ta.style.height = 'auto'; }
         Mobile._cancelReply();
+        Mobile._syncBodyPad();
         return API.getArticle(id);
       })
       .then(function (a) {
@@ -853,6 +901,14 @@ var Mobile = {
     if (!page) return;
     Mobile._articleId = null;
     Mobile._cancelReply();
+    // Cleanup keyboard listener
+    if (Mobile._vvCleanup) { Mobile._vvCleanup(); Mobile._vvCleanup = null; }
+    // Reset bar position
+    var bar = document.getElementById('m-comment-bar');
+    if (bar) { bar.style.bottom = '0px'; bar.classList.remove('bar-active'); }
+    // Reset body padding
+    var artBody = document.getElementById('m-article-body');
+    if (artBody) artBody.style.paddingBottom = '';
     // Restore chrome immediately so it appears during slide-out
     var nav2 = document.getElementById('mobile-nav');
     document.body.style.overflow = '';
