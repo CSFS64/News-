@@ -246,6 +246,8 @@ input, textarea, select { font-size: 16px !important; }
   position: fixed; inset: 0; z-index: 300;
   background: var(--bg);
   flex-direction: column; overflow: hidden;
+  /* Prevent iOS rubber-band scroll on the page container itself */
+  overscroll-behavior: none;
 }
 #m-article-page { z-index: 350; }
 
@@ -406,6 +408,9 @@ input, textarea, select { font-size: 16px !important; }
   flex: 1; overflow-y: auto;
   padding: 20px 16px 28px;
   -webkit-overflow-scrolling: touch;
+  /* Prevent the page itself from scrolling when keyboard opens —
+     only this element should scroll */
+  overscroll-behavior: contain;
 }
 
 /* Article content */
