@@ -108,82 +108,50 @@ var Mobile = {
 
   /* ── Article page already exists in HTML, just bind textarea ── */
   _buildArticlePage: function () {
-    var ta   = document.getElementById('m-comment-ta');
-    var bar  = document.getElementById('m-comment-bar');
+    var ta  = document.getElementById('m-comment-ta');
+    var bar = document.getElementById('m-comment-bar');
     if (!ta || ta._bound) return;
     ta._bound = true;
 
-    /* Auto-resize textarea */
-    ta.addEventListener('input', function () {
-      ta.style.height = 'auto';
-      ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
-      Mobile._syncBodyPad();
-    });
-
-    /* Focus / blur: active class for styling */
+    /* Focus / blur: active styling only */
     ta.addEventListener('focus', function () {
       if (bar) bar.classList.add('bar-active');
     });
     ta.addEventListener('blur', function () {
       if (bar) bar.classList.remove('bar-active');
-      setTimeout(Mobile._syncBodyPad, 150);
     });
 
-    /* ── visualViewport keyboard tracking ──
-       iOS fires both 'resize' and 'scroll' on the viewport when keyboard
-       appears; Android Chrome fires only 'resize'. We listen to both and
-       also run a short rAF poll right after focus to catch slow keyboards. */
+    /* ── visualViewport: move bar up with transform when keyboard opens ──
+       Bar is fixed height. We shift it up by exactly the keyboard height
+       using translateY so it sits flush above the keyboard.
+       transform is GPU-composited — no layout thrash, no scroll jank.    */
     if (window.visualViewport) {
-      var _rafId = null;
       function onViewport() {
-        if (_rafId) cancelAnimationFrame(_rafId);
-        _rafId = requestAnimationFrame(function () {
-          var vv = window.visualViewport;
-          /* kbHeight = space below the visual viewport (keyboard area) */
-          var kbHeight = Math.max(0,
-            window.innerHeight - (vv.offsetTop + vv.height));
-          /* Also compensate for any viewport scroll offset (iOS quirk) */
-          var offsetCorrection = vv.offsetTop || 0;
-          var totalBottom = kbHeight + offsetCorrection;
-          if (bar) {
-            bar.style.transition = 'bottom 0.12s ease';
-            bar.style.bottom = totalBottom + 'px';
-          }
-          Mobile._syncBodyPad();
-          _rafId = null;
-        });
+        var vv = window.visualViewport;
+        var kbHeight = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+        if (bar) bar.style.transform = 'translateY(-' + kbHeight + 'px)';
+        Mobile._syncBodyPad();
       }
-
-      /* Poll for ~600ms after focus to handle slow iOS keyboard animations */
-      function pollAfterFocus() {
-        var start = Date.now();
-        function tick() {
-          onViewport();
-          if (Date.now() - start < 600) requestAnimationFrame(tick);
-        }
-        requestAnimationFrame(tick);
-      }
-
       window.visualViewport.addEventListener('resize', onViewport);
       window.visualViewport.addEventListener('scroll', onViewport);
-      ta.addEventListener('focus', pollAfterFocus);
-
       Mobile._vvCleanup = function () {
         window.visualViewport.removeEventListener('resize', onViewport);
         window.visualViewport.removeEventListener('scroll', onViewport);
-        if (_rafId) cancelAnimationFrame(_rafId);
+        if (bar) bar.style.transform = 'translateY(0)';
       };
     }
   },
 
-  /* ── Sync article body bottom padding so content isn't hidden under bar ── */
+  /* ── Keep article body from being hidden under the bar ── */
   _syncBodyPad: function () {
     var bar  = document.getElementById('m-comment-bar');
     var body = document.getElementById('m-article-body');
     if (!bar || !body) return;
-    var bottom  = parseFloat(bar.style.bottom) || 0;
-    var barH    = bar.offsetHeight;
-    body.style.paddingBottom = (barH + bottom + 8) + 'px';
+    /* bar.offsetHeight is always the fixed nav height.
+       Add the keyboard offset (from transform) so content scrolls above both. */
+    var kbOffset = Math.abs(parseFloat(
+      (bar.style.transform || '').replace('translateY(', '').replace('px)', '')) || 0);
+    body.style.paddingBottom = (bar.offsetHeight + kbOffset + 8) + 'px';
   },
 
   /* ── Sync tabs from desktop tabs-row into mobile #m-tabs-row ── */
@@ -929,9 +897,9 @@ var Mobile = {
     Mobile._cancelReply();
     // Cleanup keyboard listener
     if (Mobile._vvCleanup) { Mobile._vvCleanup(); Mobile._vvCleanup = null; }
-    // Reset bar position
+    // Reset bar
     var bar = document.getElementById('m-comment-bar');
-    if (bar) { bar.style.bottom = '0px'; bar.classList.remove('bar-active'); }
+    if (bar) { bar.style.transform = 'translateY(0)'; bar.classList.remove('bar-active'); }
     // Reset body padding
     var artBody = document.getElementById('m-article-body');
     if (artBody) artBody.style.paddingBottom = '';
