@@ -30,6 +30,8 @@
       });
     }).catch(function(e){ alert('SW error:'+e); });
   " style="position:fixed;top:60px;right:10px;z-index:99999;background:#c0392b;color:#fff;border:none;padding:8px 12px;border-radius:8px;font-size:12px;cursor:pointer">诊断</button>
+  <button onclick="window.FL_requestPush&&window.FL_requestPush()" style="position:fixed;top:100px;right:10px;z-index:99999;background:#4a5230;color:#fff;border:none;padding:8px 12px;border-radius:8px;font-size:12px;cursor:pointer">开启推送</button>
+  <button onclick="Notification.requestPermission().then(function(p){alert('result:'+p)})" style="position:fixed;top:140px;right:10px;z-index:99999;background:#2c3e50;color:#fff;border:none;padding:8px 12px;border-radius:8px;font-size:12px;cursor:pointer">原生测试</button>
 
   <!-- ══ ALERT TICKER ══ -->
   <div id="alert-bar">
