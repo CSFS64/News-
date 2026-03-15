@@ -175,7 +175,7 @@ var API = (function () {
       headers: headers,
       body: body ? JSON.stringify(body) : undefined
     }).then(function (r) {
-      if (!r.ok) return r.json().then(function(e){ throw new Error(e.message || 'Request failed'); });
+      if (!r.ok) return r.json().then(function(e){ throw new Error(e.error || e.message || 'Request failed'); });
       return r.json();
     });
   }
