@@ -18,6 +18,16 @@
   <link rel="stylesheet" href="mobile.css" />
 </head>
 <body>
+  <!-- ══ SPLASH SCREEN ══ -->
+  <div id="fl-splash">
+    <div id="fl-splash-logo">
+      <div id="fl-splash-icon">战</div>
+      <div id="fl-splash-text">
+        <div id="fl-splash-cn">战线快报</div>
+        <div id="fl-splash-en">FRONTLINE DISPATCH</div>
+      </div>
+    </div>
+  </div>
 
   <!-- GRAIN OVERLAY -->
   <div id="grain"></div>
@@ -70,11 +80,15 @@
         <span id="feed-label">// 最新战报</span>
         <span id="feed-count"></span>
       </div>
-      <div id="donate-banner">
+      <div id="rec-banner" hidden>
         <span class="rec-icon">◈</span>
-        <span>如果您认为我们的工作有帮助，请在</span>
+        <span id="rec-text"></span>
+      </div>
+      <div id="donate-banner">
+        <span class="rec-icon">♥</span>
+        <span>如果你认为我们的工作有帮助，请在</span>
         <a href="https://ifdian.net/a/KalynaOSINT?tab=home" target="_blank" rel="noopener">爱发电</a>
-        <span>随意赞助！所有资金都将用于FPV的研发及制造</span>
+        <span>随意赞助！</span>
       </div>
       <div id="news-feed">
         <!-- filled by JS -->
@@ -422,6 +436,17 @@
   <script src="app.js"></script>
   <script src="mobile.js"></script>
   <script src="pwa-prompt.js"></script>
+  <script>
+  /* ── Remove splash after animation ── */
+  (function () {
+    var splash = document.getElementById('fl-splash');
+    if (!splash) return;
+    // Animation ends at 1.1s + 0.45s = 1.55s
+    setTimeout(function () {
+      splash.style.display = 'none';
+    }, 1600);
+  })();
+  </script>
   <script>
   /* ── Service Worker + Web Push (Android Chrome/Firefox only) ── */
   (function () {
