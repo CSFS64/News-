@@ -74,6 +74,12 @@
         <span class="rec-icon">◈</span>
         <span id="rec-text"></span>
       </div>
+      <div id="donate-banner">
+        <span class="rec-icon">♥</span>
+        <span>如果你认为我们的工作有帮助，请在</span>
+        <a href="https://ifdian.net/a/KalynaOSINT?tab=home" target="_blank" rel="noopener">爱发电</a>
+        <span>随意赞助！</span>
+      </div>
       <div id="news-feed">
         <!-- filled by JS -->
       </div>
@@ -116,7 +122,7 @@
   <footer id="site-footer">
     <div id="footer-inner">
       <span id="footer-brand">战线快报 FRONTLINE DISPATCH</span>
-      <span id="footer-note">内容来自公开媒体，仅供参考。本站不代表任何立场。</span>
+      <span id="footer-note">©2026 KalynaOSINT 版权所有</span>
       <span id="footer-tech">Powered by Frontline v1.0</span>
     </div>
   </footer>
@@ -467,8 +473,22 @@
           applicationServerKey: urlB64ToUint8Array(VAPID_PUBLIC_KEY)
         }).then(function (sub) {
           sendSubscription(sub, token);
-        }).catch(function () {});
-      }).catch(function () {});
+          // Show success — banner won't reappear next time
+          showToast('推送通知已开启 ✓');
+        }).catch(function (e) {
+          showToast('订阅失败: ' + (e && e.message ? e.message.slice(0,40) : e));
+        });
+      }).catch(function (e) {
+        showToast('订阅失败: ' + (e && e.message ? e.message.slice(0,40) : e));
+      });
+    }
+
+    function showToast(msg) {
+      var t = document.createElement('div');
+      t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:9999;background:#1a1c15;border:1px solid #2e3024;color:#c8c9b8;font-family:"Share Tech Mono",monospace;font-size:12px;padding:10px 16px;border-radius:8px;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,0.5)';
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(function(){ t.remove(); }, 4000);
     }
 
     function showPushBanner(reg) {
@@ -533,17 +553,36 @@
             if (m && typeof Article !== 'undefined') Article.open(m[1]);
           }
         });
-        setTimeout(function () { checkAndPromptPush(reg); }, 2000);
+
+        // Wait for SW to be active before checking push
+        function onSWReady() {
+          setTimeout(function () { checkAndPromptPush(reg); }, 2000);
+        }
+
+        if (reg.active) {
+          // SW already active (subsequent visits)
+          onSWReady();
+        } else {
+          // First visit — wait for SW to activate
+          var sw = reg.installing || reg.waiting;
+          if (sw) {
+            sw.addEventListener('statechange', function () {
+              if (sw.state === 'activated') onSWReady();
+            });
+          } else {
+            // Fallback
+            navigator.serviceWorker.ready.then(onSWReady);
+          }
+        }
         window.FL_requestPush = function () {
           if (!('PushManager' in window)) return;
+          if (Notification.permission === 'denied') return;
           if (Notification.permission === 'granted') {
             subscribePush(reg);
             return;
           }
-          Notification.requestPermission().then(function (perm) {
-            if (perm === 'granted') subscribePush(reg);
-            else showPushBanner(reg);
-          });
+          // Show banner — must be triggered by user gesture, not setTimeout
+          showPushBanner(reg);
         };
       }).catch(function () {});
   })();
