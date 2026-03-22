@@ -111,6 +111,26 @@ dialog::backdrop { background: transparent; }
   letter-spacing: 1px;
 }
 
+#donate-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--olive-dim);
+  border: 1px solid var(--olive);
+  border-left: 3px solid var(--olive-light);
+  padding: 8px 14px;
+  margin-bottom: 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--olive-light);
+}
+#donate-banner a {
+  color: var(--amber);
+  text-decoration: none;
+  font-weight: 600;
+}
+#donate-banner a:hover { text-decoration: underline; }
+
 /* ── MASTHEAD ── */
 #masthead {
   background: linear-gradient(180deg, var(--bg2) 0%, var(--bg) 100%);
