@@ -141,13 +141,10 @@ var Mobile = {
       }
       window.visualViewport.addEventListener('resize', onViewport);
       window.visualViewport.addEventListener('scroll', onViewport);
-      var artBody = document.getElementById('m-article-body');
-      if (artBody) artBody.addEventListener('scroll', onViewport);
       Mobile._vvCleanup = function () {
         window.visualViewport.removeEventListener('resize', onViewport);
         window.visualViewport.removeEventListener('scroll', onViewport);
-         if (artBody) artBody.removeEventListener('scroll', onViewport);
-         if (bar) bar.style.transform = 'translateY(0)';
+        if (bar) bar.style.transform = 'translateY(0)';
       };
     }
   },
@@ -241,21 +238,23 @@ var Mobile = {
       if (!el) return;
       if (id === pageId) {
         el.style.display = 'flex';
-        // Trigger enter animation
+        el.style.pointerEvents = '';
         el.classList.remove('m-page-open');
-        void el.offsetWidth; // force reflow
+        void el.offsetWidth;
         el.classList.add('m-page-open');
       } else {
-        // Fade out then hide
         if (el.classList.contains('m-page-open')) {
+          el.style.pointerEvents = 'none';
           el.classList.add('m-page-exit');
           el.classList.remove('m-page-open');
           setTimeout(function () {
             el.style.display = 'none';
+            el.style.pointerEvents = '';
             el.classList.remove('m-page-exit');
           }, 180);
         } else {
           el.style.display = 'none';
+          el.style.pointerEvents = '';
         }
       }
     });
@@ -652,13 +651,10 @@ var Mobile = {
           });
           body.querySelectorAll('.m-item-del').forEach(function (btn) {
             btn.addEventListener('click', function () {
-              var delId = btn.dataset.id;
-               API.toggleSave(delId).then(function () {
-                   btn.closest('.m-item').remove();
-                   State.userSaves = State.userSaves.filter(function(x){ return String(x) !== String(delId); });
-                   Toast.show('已取消收藏');
-                   try { App.renderFeed(); } catch(e) {}
-               }).catch(function () { Toast.show('操作失败', true); });
+              API.toggleSave(btn.dataset.id).then(function () {
+                btn.closest('.m-item').remove();
+                App.renderFeed(); Toast.show('已取消收藏');
+              }).catch(function () { Toast.show('操作失败', true); });
             });
           });
         });
