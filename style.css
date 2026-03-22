@@ -368,22 +368,6 @@ dialog::backdrop { background: transparent; }
   color: var(--text-dim);
 }
 
-/* Rec banner */
-#rec-banner {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: var(--olive-dim);
-  border: 1px solid var(--olive);
-  border-left: 3px solid var(--olive-light);
-  padding: 8px 14px;
-  margin-bottom: 16px;
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--olive-light);
-}
-.rec-icon { color: var(--amber); font-size: 14px; }
-
 /* ── NEWS CARDS ── */
 .news-card {
   background: var(--panel);
