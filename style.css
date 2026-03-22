@@ -151,6 +151,7 @@ dialog::backdrop { background: transparent; }
 }
 #fl-splash-logo {
   display: flex; align-items: center; gap: 18px;
+  opacity: 0;
   animation: fl-splash-logo-in 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.1s both;
 }
 #fl-splash-icon {
@@ -171,13 +172,14 @@ dialog::backdrop { background: transparent; }
   font-family: var(--head);
   font-size: 28px; font-weight: 700; letter-spacing: 2px;
   color: var(--text-bright);
+  opacity: 0;
   animation: fl-splash-text-in 0.4s ease 0.3s both;
 }
 #fl-splash-en {
   font-family: var(--mono);
   font-size: 11px; letter-spacing: 3px;
   color: var(--red-hot);
-  opacity: 0.8;
+  opacity: 0;
   animation: fl-splash-text-in 0.4s ease 0.45s both;
 }
 @keyframes fl-splash-logo-in {
