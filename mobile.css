@@ -291,6 +291,16 @@ input, textarea, select { font-size: 16px !important; }
 }
 
 /* ── 我的: profile header ── */
+#m-donate-bar { display: none; }
+
+#donate-banner {
+  margin: 0 !important;
+  border-radius: 0 !important;
+  border-left-width: 3px !important;
+  border-top: none !important;
+  border-right: none !important;
+}
+
 #m-me-header {
   padding: 22px 16px 18px;
   border-bottom: 1px solid var(--border);
