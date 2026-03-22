@@ -4,9 +4,8 @@
  * Kept minimal: no offline cache (content is live news, staleness undesirable).
  */
 
-const CACHE_NAME = 'fl-shell-v2';
+const CACHE_NAME = 'fl-shell-v3';
 const SHELL_ASSETS = [
-  '/News-/',
   '/News-/style.css',
   '/News-/mobile.css',
   '/News-/api.js',
@@ -37,11 +36,9 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   // Always network for API calls
   if (url.hostname.includes('workers.dev')) return;
-  // Network-first for navigation
+  // Network-first for navigation — always fetch fresh HTML
   if (e.request.mode === 'navigate') {
-    e.respondWith(
-      fetch(e.request).catch(() => caches.match('/News-/'))
-    );
+    e.respondWith(fetch(e.request));
     return;
   }
   // Cache-first for shell assets
