@@ -36,6 +36,11 @@ var Mobile = {
     if (hdr) { hdr.style.display = 'flex'; hdr.classList.add('m-hdr-ready'); }
     if (nav) { nav.style.display = 'flex'; nav.classList.add('m-nav-ready'); }
 
+    // Sync feed-col top to actual header height
+    Mobile._syncFeedTop();
+    // Re-sync if header height changes (e.g. search expand)
+    if (hdr) new ResizeObserver(Mobile._syncFeedTop).observe(hdr);
+
     // Keep tabs in sync when desktop tabs re-render
     var desktopTabs = document.getElementById('tabs-row');
     if (desktopTabs) {
@@ -150,6 +155,13 @@ var Mobile = {
   },
 
   /* ── Keep article body from being hidden under the bar ── */
+  _syncFeedTop: function () {
+    var hdr = document.getElementById('mobile-header');
+    var feedCol = document.getElementById('feed-col');
+    if (!hdr || !feedCol) return;
+    feedCol.style.top = hdr.offsetHeight + 'px';
+  },
+
   _syncBodyPad: function () {
     var bar  = document.getElementById('m-comment-bar');
     var body = document.getElementById('m-article-body');
