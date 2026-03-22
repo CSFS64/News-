@@ -4,7 +4,7 @@
  * Kept minimal: no offline cache (content is live news, staleness undesirable).
  */
 
-const CACHE_NAME = 'fl-shell-v1';
+const CACHE_NAME = 'fl-shell-v2';
 const SHELL_ASSETS = [
   '/News-/',
   '/News-/style.css',
