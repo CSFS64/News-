@@ -299,6 +299,8 @@ input, textarea, select { font-size: 16px !important; }
   border-left-width: 3px !important;
   border-top: none !important;
   border-right: none !important;
+  flex-wrap: wrap !important;
+  line-height: 1.6 !important;
 }
 
 #m-me-header {
