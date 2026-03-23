@@ -611,7 +611,15 @@ dialog::backdrop { background: transparent; }
 .empty-text { font-family: var(--mono); font-size: 13px; }
 
 /* ── INTEL SIDEBAR ── */
-#intel-col { display: flex; flex-direction: column; gap: 16px; }
+#intel-col {
+  display: flex; flex-direction: column; gap: 16px;
+  position: sticky;
+  top: 84px;
+  max-height: calc(100vh - 108px);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+#intel-col::-webkit-scrollbar { display: none; }
 .intel-widget {
   background: var(--panel);
   border: 1px solid var(--border);
