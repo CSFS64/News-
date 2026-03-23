@@ -611,20 +611,7 @@ dialog::backdrop { background: transparent; }
 .empty-text { font-family: var(--mono); font-size: 13px; }
 
 /* ── INTEL SIDEBAR ── */
-#intel-col {
-  display: flex; flex-direction: column; gap: 16px;
-  position: sticky;
-  top: 84px;
-  max-height: calc(100vh - 108px);
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border2) transparent;
-  padding-right: 2px;
-}
-#intel-col::-webkit-scrollbar { width: 4px; }
-#intel-col::-webkit-scrollbar-track { background: transparent; }
-#intel-col::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+#intel-col { display: flex; flex-direction: column; gap: 16px; }
 .intel-widget {
   background: var(--panel);
   border: 1px solid var(--border);
