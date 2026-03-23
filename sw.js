@@ -4,13 +4,13 @@
  * Kept minimal: no offline cache (content is live news, staleness undesirable).
  */
 
-const CACHE_NAME = 'fl-shell-v3';
+const CACHE_NAME = 'fl-shell-v4';
 const SHELL_ASSETS = [
-  '/News-/style.css',
-  '/News-/mobile.css',
-  '/News-/api.js',
-  '/News-/app.js',
-  '/News-/mobile.js',
+  '/style.css',
+  '/mobile.css',
+  '/api.js',
+  '/app.js',
+  '/mobile.js',
 ];
 
 /* ── Install: cache shell assets ── */
@@ -49,14 +49,14 @@ self.addEventListener('fetch', (e) => {
 
 /* ── Push: receive and show notification ── */
 self.addEventListener('push', (e) => {
-  let data = { title: '战线快报', body: '有新的通知', url: '/News-/' };
+  let data = { title: '战线快报', body: '有新的通知', url: '/' };
   try { data = { ...data, ...e.data.json() }; } catch (_) {}
 
   e.waitUntil(
     self.registration.showNotification(data.title, {
       body:    data.body,
-      icon:    '/News-/icon-192.png',
-      badge:   '/News-/icon-192.png',
+      icon:    '/icon-192.png',
+      badge:   '/icon-192.png',
       data:    { url: data.url },
       vibrate: [100, 50, 100],
       tag:     'fl-notif',          // replaces previous notification
@@ -68,12 +68,12 @@ self.addEventListener('push', (e) => {
 /* ── Notification click: open / focus the app ── */
 self.addEventListener('notificationclick', (e) => {
   e.notification.close();
-  const target = e.notification.data?.url || '/News-/';
+  const target = e.notification.data?.url || '/';
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
       // Focus existing tab if open
       for (const client of list) {
-        if (client.url.includes('/News-/') && 'focus' in client) {
+        if (client.url.includes('news.kalyna.homes') && 'focus' in client) {
           client.postMessage({ type: 'NOTIF_CLICK', url: target });
           return client.focus();
         }
