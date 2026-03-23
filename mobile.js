@@ -623,7 +623,7 @@ var Mobile = {
           btn.addEventListener('click', function () {
             if (!confirm('确认删除这条评论？')) return;
             var aid = btn.dataset.aid, cid = btn.dataset.id;
-            fetch((typeof API_BASE_URL !== 'undefined' ? API_BASE_URL : 'https://frontline-backend.20060303jjc.workers.dev') +
+            fetch((typeof API_BASE_URL !== 'undefined' ? API_BASE_URL : 'https://api.kalyna.homes') +
               '/articles/' + aid + '/comments/' + cid, {
               method: 'DELETE',
               headers: { Authorization: 'Bearer ' + (window._fl_token || '') }
