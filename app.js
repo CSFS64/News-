@@ -157,7 +157,10 @@ var App = {
           if (!a.featured && b.featured) return 1;
           var ao = alertOrder[a.alertLevel||'']!==undefined?alertOrder[a.alertLevel||'']:4;
           var bo = alertOrder[b.alertLevel||'']!==undefined?alertOrder[b.alertLevel||'']:4;
-          return ao!==bo ? ao-bo : b.likes-a.likes;
+          if (ao !== bo) return ao - bo;
+          // Same alert level — sort by date descending (newest first)
+          var ad = a.date || ''; var bd = b.date || '';
+          return bd > ad ? 1 : bd < ad ? -1 : 0;
         });
       }
 
