@@ -832,4 +832,12 @@ input, textarea, select { font-size: 16px !important; }
 /* ── Notif unread → read fade ── */
 .m-notif { transition: background 0.3s ease, border-left-color 0.3s ease; }
 
+/* ── Image Upload (mobile) ── */
+.img-preview-grid {
+  grid-template-columns: repeat(3, 1fr) !important;
+}
+.img-upload-placeholder {
+  padding: 12px !important;
+  font-size: 12px !important;
+}
 } /* end @media */
