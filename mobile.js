@@ -686,7 +686,7 @@ var Mobile = {
         (tags ? '<div class="card-tags">' + tags + '</div>' : '') +
         '<div class="card-title">' + esc(a.title) + '</div>' +
         (a.desc ? '<div class="card-desc">' + esc(a.desc) + '</div>' : '') +
-        (a.images&&a.images.length ? '<div class="art-img-grid art-img-grid--'+Math.min(a.images.length,3)+'">'+a.images.map(function(u,i){return '<img src="'+esc(u)+'" alt="" loading="lazy" onclick="ImageViewer.open('+JSON.stringify(a.images)+','+i+')">';}).join('')+'</div>' : '') +
+        (a.images&&a.images.length ? '<div class="art-img-grid art-img-grid--'+Math.min(a.images.length,3)+'">'+a.images.map(function(u,i){return '<img src="'+esc(u)+'" alt="" loading="lazy" data-idx="'+i+'" class="art-img-thumb">';}).join('')+'</div>' : '') +
         '<div class="card-meta"><span class="card-src">' + esc(a.source) + '</span><span class="card-time">' + formatDate(a.date) + '</span></div>' +
       '</div>' +
       '<div class="card-actions">' +
@@ -760,7 +760,7 @@ var Mobile = {
       (tags ? '<div class="m-art-tags">' + tags + '</div>' : '') +
       '<div class="m-art-title">' + esc(a.title) + '</div>' +
       (a.desc ? '<div class="m-art-desc">' + esc(a.desc) + '</div>' : '') +
-      (a.images&&a.images.length ? '<div class="art-img-grid art-img-grid--'+Math.min(a.images.length,3)+'">'+a.images.map(function(u,i){return '<img src="'+esc(u)+'" alt="" loading="lazy" onclick="ImageViewer.open('+JSON.stringify(a.images)+','+i+')">';}).join('')+'</div>' : '') +
+      (a.images&&a.images.length ? '<div class="art-img-grid art-img-grid--'+Math.min(a.images.length,3)+'">'+a.images.map(function(u,i){return '<img src="'+esc(u)+'" alt="" loading="lazy" data-idx="'+i+'" class="art-img-thumb">';}).join('')+'</div>' : '') +
       '<div class="m-art-meta">' +
         '<span>' + esc(a.source) + '</span>' +
         '<span>' + formatDate(a.date) + '</span>' +
