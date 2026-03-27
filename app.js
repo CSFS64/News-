@@ -7,11 +7,11 @@
    IMAGE UPLOAD
    ══════════════════════════════════════════════════════════ */
 var ImageUpload = {
-  _stores: {}, // prefix -> { files: [], urls: [] }
+  _stores: {}, // prefix -> { files: [], urls: [], blobUrls: [] }
 
   init: function (prefix) {
     var self = this;
-    if (!self._stores[prefix]) self._stores[prefix] = { files: [], urls: [] };
+    if (!self._stores[prefix]) self._stores[prefix] = { files: [], urls: [], blobUrls: [] };
     var area        = document.getElementById(prefix + '-img-area');
     var input       = document.getElementById(prefix + '-img-input');
     var placeholder = document.getElementById(prefix + '-img-placeholder');
@@ -57,7 +57,8 @@ var ImageUpload = {
     if (!files.length) { if (store.files.length >= 9) Toast.show('最多上传9张图片', true); return; }
     files.forEach(function (f) {
       store.files.push(f);
-      store.urls.push(null); // placeholder until uploaded
+      store.urls.push(null);
+      store.blobUrls.push(URL.createObjectURL(f));
       ImageUpload._renderPreview(prefix);
     });
   },
@@ -68,10 +69,9 @@ var ImageUpload = {
     var ph    = document.getElementById(prefix + '-img-placeholder');
     if (!grid) return;
     if (ph) ph.style.display = store.files.length ? 'none' : '';
-    grid.innerHTML = store.files.map(function (f, i) {
-      var objUrl = URL.createObjectURL(f);
+    grid.innerHTML = store.blobUrls.map(function (blobUrl, i) {
       return '<div class="img-preview-item" data-idx="' + i + '">' +
-        '<img src="' + objUrl + '" alt="">' +
+        '<img src="' + blobUrl + '" alt="">' +
         '<button class="img-del" onclick="ImageUpload.remove(\'' + prefix + '\',' + i + ')">✕</button>' +
         (store.urls[i] === null ? '<div class="img-uploading">待上传</div>' : '') +
         '</div>';
@@ -80,8 +80,10 @@ var ImageUpload = {
 
   remove: function (prefix, idx) {
     var store = this._stores[prefix];
+    if (store.blobUrls[idx]) URL.revokeObjectURL(store.blobUrls[idx]);
     store.files.splice(idx, 1);
     store.urls.splice(idx, 1);
+    store.blobUrls.splice(idx, 1);
     this._renderPreview(prefix);
   },
 
@@ -107,7 +109,9 @@ var ImageUpload = {
   },
 
   reset: function (prefix) {
-    this._stores[prefix] = { files: [], urls: [] };
+    var store = this._stores[prefix];
+    if (store && store.blobUrls) store.blobUrls.forEach(function(u){ URL.revokeObjectURL(u); });
+    this._stores[prefix] = { files: [], urls: [], blobUrls: [] };
     this._renderPreview(prefix);
     var ph = document.getElementById(prefix + '-img-placeholder');
     if (ph) ph.style.display = '';
