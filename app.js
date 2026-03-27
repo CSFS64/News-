@@ -7,112 +7,111 @@
    IMAGE UPLOAD
    ══════════════════════════════════════════════════════════ */
 var ImageUpload = {
-  _stores: {}, // prefix -> { files: [], urls: [], blobUrls: [] }
+  _stores: {},
+
+  _store: function (prefix) {
+    if (!this._stores[prefix]) this._stores[prefix] = { files: [], blobUrls: [] };
+    return this._stores[prefix];
+  },
 
   init: function (prefix) {
     var self = this;
-    if (!self._stores[prefix]) self._stores[prefix] = { files: [], urls: [], blobUrls: [] };
-    var area        = document.getElementById(prefix + '-img-area');
-    var input       = document.getElementById(prefix + '-img-input');
-    var placeholder = document.getElementById(prefix + '-img-placeholder');
-    if (!area || !input) return;
+    var store = self._store(prefix);
+    var area  = document.getElementById(prefix + '-img-area');
+    var input = document.getElementById(prefix + '-img-input');
+    if (!area || !input || area._imgInited) return;
+    area._imgInited = true;
 
-    // Click to open file picker
     area.addEventListener('click', function (e) {
-      if (e.target.closest('.img-del')) return;
+      if (e.target.closest('.img-del') || e.target.closest('.img-preview-item')) return;
       input.click();
     });
-
-    // File input change
     input.addEventListener('change', function () {
       self._addFiles(prefix, Array.from(input.files));
       input.value = '';
     });
-
-    // Drag & drop
     area.addEventListener('dragover', function (e) { e.preventDefault(); area.classList.add('drag-over'); });
     area.addEventListener('dragleave', function () { area.classList.remove('drag-over'); });
     area.addEventListener('drop', function (e) {
       e.preventDefault(); area.classList.remove('drag-over');
-      var files = Array.from(e.dataTransfer.files).filter(function(f){ return f.type.startsWith('image/'); });
-      self._addFiles(prefix, files);
+      self._addFiles(prefix, Array.from(e.dataTransfer.files).filter(function(f){ return f.type.startsWith('image/'); }));
     });
-
-    // Paste
     document.addEventListener('paste', function (e) {
-      var active = document.activeElement;
-      var dlg = area.closest('.dialog-sheet');
-      if (!dlg || !dlg.style.display || dlg.style.display === 'none') return;
-      if (!document.getElementById(prefix + '-img-area')) return;
-      var items = Array.from(e.clipboardData.items || []);
-      var files = items.filter(function(i){ return i.type.startsWith('image/'); }).map(function(i){ return i.getAsFile(); });
+      var dlg = area.closest('[id^="dlg-"]');
+      if (!dlg || !dlg.classList.contains('is-open')) return;
+      var files = Array.from(e.clipboardData.items || [])
+        .filter(function(i){ return i.type.startsWith('image/'); })
+        .map(function(i){ return i.getAsFile(); }).filter(Boolean);
       if (files.length) self._addFiles(prefix, files);
     });
   },
 
   _addFiles: function (prefix, files) {
-    var store = this._stores[prefix];
-    var remaining = 9 - store.files.length;
-    files = files.slice(0, remaining);
-    if (!files.length) { if (store.files.length >= 9) Toast.show('最多上传9张图片', true); return; }
-    files.forEach(function (f) {
+    var store = this._store(prefix);
+    var room = 9 - store.files.length;
+    if (!room) { Toast.show('最多上传9张图片', true); return; }
+    files.slice(0, room).forEach(function (f) {
       store.files.push(f);
-      store.urls.push(null);
       store.blobUrls.push(URL.createObjectURL(f));
-      ImageUpload._renderPreview(prefix);
     });
+    this._render(prefix);
   },
 
-  _renderPreview: function (prefix) {
-    var store = this._stores[prefix];
+  _render: function (prefix) {
+    var store = this._store(prefix);
     var grid  = document.getElementById(prefix + '-img-preview');
     var ph    = document.getElementById(prefix + '-img-placeholder');
     if (!grid) return;
     if (ph) ph.style.display = store.files.length ? 'none' : '';
-    grid.innerHTML = store.blobUrls.map(function (blobUrl, i) {
-      return '<div class="img-preview-item" data-idx="' + i + '">' +
-        '<img src="' + blobUrl + '" alt="">' +
-        '<button class="img-del" onclick="ImageUpload.remove(\'' + prefix + '\',' + i + ')">✕</button>' +
-        (store.urls[i] === null ? '<div class="img-uploading">待上传</div>' : '') +
+    grid.innerHTML = store.blobUrls.map(function (url, i) {
+      return '<div class="img-preview-item">' +
+        '<img src="' + url + '" alt="">' +
+        '<button class="img-del" type="button" data-prefix="' + prefix + '" data-idx="' + i + '">✕</button>' +
         '</div>';
     }).join('');
+    grid.querySelectorAll('.img-del').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        ImageUpload.remove(btn.dataset.prefix, parseInt(btn.dataset.idx));
+      });
+    });
   },
 
   remove: function (prefix, idx) {
-    var store = this._stores[prefix];
-    if (store.blobUrls[idx]) URL.revokeObjectURL(store.blobUrls[idx]);
+    var store = this._store(prefix);
+    URL.revokeObjectURL(store.blobUrls[idx]);
     store.files.splice(idx, 1);
-    store.urls.splice(idx, 1);
     store.blobUrls.splice(idx, 1);
-    this._renderPreview(prefix);
+    this._render(prefix);
   },
 
-  // Upload all pending files, return array of URLs
   uploadAll: function (prefix) {
-    var store = this._stores[prefix];
-    if (!store || !store.files.length) return Promise.resolve([]);
-    var token = (function(){ try { var r=localStorage.getItem('fl_token'); if(!r) return ''; try{var p=JSON.parse(r);return typeof p==='string'?p:r;}catch(e){return r;} }catch(e){return '';} })();
+    var store = this._store(prefix);
+    if (!store.files.length) return Promise.resolve([]);
+    var token = (function () {
+      try { var r = localStorage.getItem('fl_token'); if (!r) return '';
+        try { var p = JSON.parse(r); return typeof p === 'string' ? p : r; } catch (e) { return r; }
+      } catch (e) { return ''; }
+    })();
     var apiBase = (typeof API_BASE_URL !== 'undefined' ? API_BASE_URL : 'https://api.kalyna.homes');
-    var promises = store.files.map(function (f) {
-      var fd = new FormData();
-      fd.append('file', f);
+    return Promise.all(store.files.map(function (f) {
+      var fd = new FormData(); fd.append('file', f);
       return fetch(apiBase + '/media/upload', {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + token },
-        body: fd
+        method: 'POST', headers: { 'Authorization': 'Bearer ' + token }, body: fd
       }).then(function (r) {
-        if (!r.ok) throw new Error('上传失败');
+        if (!r.ok) return r.json().then(function(e){ throw new Error(e.error || '上传失败'); });
         return r.json();
       }).then(function (d) { return d.url; });
-    });
-    return Promise.all(promises);
+    }));
   },
 
   reset: function (prefix) {
     var store = this._stores[prefix];
-    if (store && store.blobUrls) store.blobUrls.forEach(function(u){ URL.revokeObjectURL(u); });
-    this._stores[prefix] = { files: [], urls: [], blobUrls: [] };
-    this._renderPreview(prefix);
+    if (store) store.blobUrls.forEach(function (u) { URL.revokeObjectURL(u); });
+    var area = document.getElementById(prefix + '-img-area');
+    if (area) area._imgInited = false;
+    this._stores[prefix] = { files: [], blobUrls: [] };
+    this._render(prefix);
     var ph = document.getElementById(prefix + '-img-placeholder');
     if (ph) ph.style.display = '';
   },
@@ -399,7 +398,7 @@ var Render = {
       '<div class="card-tags">'+tags+authorHtml+'</div>'+
       '<div class="card-title">'+esc(a.title)+'</div>'+
       (a.desc?'<div class="card-desc">'+esc(a.desc)+'</div>':'')+
-      (a.images&&a.images.length?'<div class="art-img-grid art-img-grid--'+Math.min(a.images.length,3)+'">'+a.images.map(function(u){return '<img src="'+esc(u)+'" alt="" loading="lazy" onclick="ImageViewer.open('+JSON.stringify(a.images)+','+a.images.indexOf(u)+')">';}).join('')+'</div>':'')+
+      (a.images&&a.images.length?(function(){var imgs=a.images;return '<div class="art-img-grid art-img-grid--'+Math.min(imgs.length,3)+'" data-imgs="'+esc(JSON.stringify(imgs))+'">'+imgs.map(function(u,i){return '<img src="'+esc(u)+'" alt="" loading="lazy" data-idx="'+i+'" class="art-img-thumb">';}).join('')+'</div>';})():'')+
       '<div class="card-actions">'+
       '<button class="act-btn'+(liked?' is-liked':'')+'" data-action="like" data-id="'+a.id+'">♥ <span>'+a.likes+'</span></button>'+
       '<button class="act-btn'+(saved?' is-saved':'')+'" data-action="save" data-id="'+a.id+'">◈ <span>'+(a.saves||0)+'</span></button>'+
@@ -531,7 +530,7 @@ var Article = {
       '</div>'+
       '<div class="art-title">'+esc(a.title)+'</div>'+
       (a.desc?'<div class="art-desc">'+esc(a.desc)+'</div>':'')+
-      (a.images&&a.images.length?'<div class="art-img-grid art-img-grid--'+Math.min(a.images.length,3)+'">'+a.images.map(function(u,i){return '<img src="'+esc(u)+'" alt="" loading="lazy" onclick="ImageViewer.open('+JSON.stringify(a.images)+','+i+')">';}).join('')+'</div>':'')+
+      (a.images&&a.images.length?(function(){var imgs=a.images;return '<div class="art-img-grid art-img-grid--'+Math.min(imgs.length,3)+'" data-imgs="'+esc(JSON.stringify(imgs))+'">'+imgs.map(function(u,i){return '<img src="'+esc(u)+'" alt="" loading="lazy" data-idx="'+i+'" class="art-img-thumb">';}).join('')+'</div>';})():'')+
       '<div class="art-actions">'+
       '<a href="'+a.url+'" target="_blank" rel="noopener" class="btn-read">阅读原文 ↗</a>'+
       '<button class="act-btn'+(liked?' is-liked':'')+'" id="modal-like-'+a.id+'" onclick="Interactions.like(\''+a.id+'\',this)">♥ <span>'+a.likes+'</span> 点赞</button>'+
@@ -1728,12 +1727,15 @@ Auth.renderHeader = function () {
 /* ══════════════════════════════════════════════════════════
    IMAGE VIEWER (lightbox)
    ══════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════
+   IMAGE VIEWER (lightbox)
+   ══════════════════════════════════════════════════════════ */
 var ImageViewer = {
   _images: [],
   _idx: 0,
 
   open: function (images, idx) {
-    this._images = images;
+    this._images = Array.isArray(images) ? images : [];
     this._idx    = idx || 0;
     var el = document.getElementById('img-viewer');
     if (!el) {
@@ -1776,6 +1778,18 @@ var ImageViewer = {
     if (el) el.classList.remove('active');
   }
 };
+
+// Global click handler for image grids (avoids inline JSON issues)
+document.addEventListener('click', function (e) {
+  var thumb = e.target.closest('.art-img-thumb');
+  if (!thumb) return;
+  var grid = thumb.closest('.art-img-grid');
+  if (!grid) return;
+  var imgs;
+  try { imgs = JSON.parse(grid.dataset.imgs || '[]'); } catch(_) { imgs = []; }
+  var idx = parseInt(thumb.dataset.idx) || 0;
+  if (imgs.length) ImageViewer.open(imgs, idx);
+});
 
 // Init
 document.addEventListener('DOMContentLoaded', function () {
