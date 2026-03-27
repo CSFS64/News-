@@ -832,12 +832,10 @@ input, textarea, select { font-size: 16px !important; }
 /* ── Notif unread → read fade ── */
 .m-notif { transition: background 0.3s ease, border-left-color 0.3s ease; }
 
-/* ── Image Upload (mobile) ── */
-.img-preview-grid {
-  grid-template-columns: repeat(3, 1fr) !important;
-}
-.img-upload-placeholder {
-  padding: 12px !important;
-  font-size: 12px !important;
-}
 } /* end @media */
+
+/* ── Article Image Grid (mobile) ── */
+.art-img-grid { border-radius: 8px; }
+.art-img-grid--1 img { aspect-ratio: 16/9; max-height: 260px; }
+#img-viewer-prev { left: 8px; }
+#img-viewer-next { right: 8px; }
