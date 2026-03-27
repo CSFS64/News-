@@ -4,6 +4,121 @@
  */
 
 /* ══════════════════════════════════════════════════════════
+   IMAGE UPLOAD
+   ══════════════════════════════════════════════════════════ */
+var ImageUpload = {
+  _stores: {}, // prefix -> { files: [], urls: [] }
+
+  init: function (prefix) {
+    var self = this;
+    if (!self._stores[prefix]) self._stores[prefix] = { files: [], urls: [] };
+    var area        = document.getElementById(prefix + '-img-area');
+    var input       = document.getElementById(prefix + '-img-input');
+    var placeholder = document.getElementById(prefix + '-img-placeholder');
+    if (!area || !input) return;
+
+    // Click to open file picker
+    area.addEventListener('click', function (e) {
+      if (e.target.closest('.img-del')) return;
+      input.click();
+    });
+
+    // File input change
+    input.addEventListener('change', function () {
+      self._addFiles(prefix, Array.from(input.files));
+      input.value = '';
+    });
+
+    // Drag & drop
+    area.addEventListener('dragover', function (e) { e.preventDefault(); area.classList.add('drag-over'); });
+    area.addEventListener('dragleave', function () { area.classList.remove('drag-over'); });
+    area.addEventListener('drop', function (e) {
+      e.preventDefault(); area.classList.remove('drag-over');
+      var files = Array.from(e.dataTransfer.files).filter(function(f){ return f.type.startsWith('image/'); });
+      self._addFiles(prefix, files);
+    });
+
+    // Paste
+    document.addEventListener('paste', function (e) {
+      var active = document.activeElement;
+      var dlg = area.closest('.dialog-sheet');
+      if (!dlg || !dlg.style.display || dlg.style.display === 'none') return;
+      if (!document.getElementById(prefix + '-img-area')) return;
+      var items = Array.from(e.clipboardData.items || []);
+      var files = items.filter(function(i){ return i.type.startsWith('image/'); }).map(function(i){ return i.getAsFile(); });
+      if (files.length) self._addFiles(prefix, files);
+    });
+  },
+
+  _addFiles: function (prefix, files) {
+    var store = this._stores[prefix];
+    var remaining = 9 - store.files.length;
+    files = files.slice(0, remaining);
+    if (!files.length) { if (store.files.length >= 9) Toast.show('最多上传9张图片', true); return; }
+    files.forEach(function (f) {
+      store.files.push(f);
+      store.urls.push(null); // placeholder until uploaded
+      ImageUpload._renderPreview(prefix);
+    });
+  },
+
+  _renderPreview: function (prefix) {
+    var store = this._stores[prefix];
+    var grid  = document.getElementById(prefix + '-img-preview');
+    var ph    = document.getElementById(prefix + '-img-placeholder');
+    if (!grid) return;
+    if (ph) ph.style.display = store.files.length ? 'none' : '';
+    grid.innerHTML = store.files.map(function (f, i) {
+      var objUrl = URL.createObjectURL(f);
+      return '<div class="img-preview-item" data-idx="' + i + '">' +
+        '<img src="' + objUrl + '" alt="">' +
+        '<button class="img-del" onclick="ImageUpload.remove(\'' + prefix + '\',' + i + ')">✕</button>' +
+        (store.urls[i] === null ? '<div class="img-uploading">待上传</div>' : '') +
+        '</div>';
+    }).join('');
+  },
+
+  remove: function (prefix, idx) {
+    var store = this._stores[prefix];
+    store.files.splice(idx, 1);
+    store.urls.splice(idx, 1);
+    this._renderPreview(prefix);
+  },
+
+  // Upload all pending files, return array of URLs
+  uploadAll: function (prefix) {
+    var store = this._stores[prefix];
+    if (!store || !store.files.length) return Promise.resolve([]);
+    var token = (function(){ try { var r=localStorage.getItem('fl_token'); if(!r) return ''; try{var p=JSON.parse(r);return typeof p==='string'?p:r;}catch(e){return r;} }catch(e){return '';} })();
+    var apiBase = (typeof API_BASE_URL !== 'undefined' ? API_BASE_URL : 'https://api.kalyna.homes');
+    var promises = store.files.map(function (f) {
+      var fd = new FormData();
+      fd.append('file', f);
+      return fetch(apiBase + '/media/upload', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token },
+        body: fd
+      }).then(function (r) {
+        if (!r.ok) throw new Error('上传失败');
+        return r.json();
+      }).then(function (d) { return d.url; });
+    });
+    return Promise.all(promises);
+  },
+
+  reset: function (prefix) {
+    this._stores[prefix] = { files: [], urls: [] };
+    this._renderPreview(prefix);
+    var ph = document.getElementById(prefix + '-img-placeholder');
+    if (ph) ph.style.display = '';
+  },
+
+  getCount: function (prefix) {
+    return (this._stores[prefix] && this._stores[prefix].files.length) || 0;
+  }
+};
+
+/* ══════════════════════════════════════════════════════════
    STATE
    ══════════════════════════════════════════════════════════ */
 var State = {
@@ -280,6 +395,7 @@ var Render = {
       '<div class="card-tags">'+tags+authorHtml+'</div>'+
       '<div class="card-title">'+esc(a.title)+'</div>'+
       (a.desc?'<div class="card-desc">'+esc(a.desc)+'</div>':'')+
+      (a.images&&a.images.length?'<div class="art-img-grid art-img-grid--'+Math.min(a.images.length,3)+'">'+a.images.map(function(u){return '<img src="'+esc(u)+'" alt="" loading="lazy" onclick="ImageViewer.open('+JSON.stringify(a.images)+','+a.images.indexOf(u)+')">';}).join('')+'</div>':'')+
       '<div class="card-actions">'+
       '<button class="act-btn'+(liked?' is-liked':'')+'" data-action="like" data-id="'+a.id+'">♥ <span>'+a.likes+'</span></button>'+
       '<button class="act-btn'+(saved?' is-saved':'')+'" data-action="save" data-id="'+a.id+'">◈ <span>'+(a.saves||0)+'</span></button>'+
@@ -411,6 +527,7 @@ var Article = {
       '</div>'+
       '<div class="art-title">'+esc(a.title)+'</div>'+
       (a.desc?'<div class="art-desc">'+esc(a.desc)+'</div>':'')+
+      (a.images&&a.images.length?'<div class="art-img-grid art-img-grid--'+Math.min(a.images.length,3)+'">'+a.images.map(function(u,i){return '<img src="'+esc(u)+'" alt="" loading="lazy" onclick="ImageViewer.open('+JSON.stringify(a.images)+','+i+')">';}).join('')+'</div>':'')+
       '<div class="art-actions">'+
       '<a href="'+a.url+'" target="_blank" rel="noopener" class="btn-read">阅读原文 ↗</a>'+
       '<button class="act-btn'+(liked?' is-liked':'')+'" id="modal-like-'+a.id+'" onclick="Interactions.like(\''+a.id+'\',this)">♥ <span>'+a.likes+'</span> 点赞</button>'+
@@ -982,7 +1099,8 @@ var Admin = {
         .map(function(t){return '<option value="'+t+'">'+t+'</option>';}).join('');
       Admin.switchTab('publish');
       Dialog.open('dlg-admin');
-    }).catch(function(){ Admin.switchTab('publish'); Dialog.open('dlg-admin'); });
+      ImageUpload.init('pub');
+    }).catch(function(){ Admin.switchTab('publish'); Dialog.open('dlg-admin'); ImageUpload.init('pub'); });
   },
 
   openPublishOnly: function () {
@@ -992,7 +1110,8 @@ var Admin = {
       if (sel) sel.innerHTML = (tabs||[]).filter(function(t){return t!=='全部';})
         .map(function(t){return '<option value="'+t+'">'+t+'</option>';}).join('');
       Dialog.open('dlg-publish');
-    }).catch(function(){ Dialog.open('dlg-publish'); });
+      ImageUpload.init('pub2');
+    }).catch(function(){ Dialog.open('dlg-publish'); ImageUpload.init('pub2'); });
   },
 
   switchTab: function (tab) {
@@ -1028,12 +1147,15 @@ var Admin = {
     if (!url){ Toast.show('请填写原文链接',true); return; }
     if (!/^https?:\/\//i.test(url)){ Toast.show('链接须以 http:// 或 https:// 开头',true); return; }
     if (!category){ Toast.show('请选择分类',true); return; }
-    API.publishArticle({title,source,url,category,desc,emoji,alertLevel:alert,featured:false})
-      .then(function(){
+    Toast.show('上传中…');
+    ImageUpload.uploadAll('pub2').then(function(images){
+      return API.publishArticle({title,source,url,category,desc,emoji,alertLevel:alert,featured:false,images});
+    }).then(function(){
         ['pub2-title','pub2-source','pub2-url','pub2-desc','pub2-emoji'].forEach(function(id){
           document.getElementById(id).value='';
         });
         document.getElementById('pub2-alert').value='';
+        ImageUpload.reset('pub2');
         Dialog.close('dlg-publish');
         App.refresh();
         Toast.show('文章已发布 ✓');
@@ -1054,13 +1176,16 @@ var Admin = {
     if (!url){ Toast.show('请填写原文链接',true); return; }
     if (!/^https?:\/\//i.test(url)){ Toast.show('链接须以 http:// 或 https:// 开头',true); return; }
     if (!category){ Toast.show('请选择分类',true); return; }
-    API.publishArticle({title,source,url,category,desc,emoji,alertLevel:alert,featured})
-      .then(function(){
+    Toast.show('上传中…');
+    ImageUpload.uploadAll('pub').then(function(images){
+      return API.publishArticle({title,source,url,category,desc,emoji,alertLevel:alert,featured,images});
+    }).then(function(){
         ['pub-title','pub-source','pub-url','pub-desc','pub-emoji'].forEach(function(id){
           document.getElementById(id).value='';
         });
         document.getElementById('pub-alert').value='';
         document.getElementById('pub-featured').checked=false;
+        ImageUpload.reset('pub');
         Dialog.close('dlg-admin');
         App.refresh();
         Toast.show('战报已发布 ✓');
@@ -1594,6 +1719,58 @@ Auth.renderHeader = function () {
     MobileNav.syncBadge();
     MobileNav.updateMeIcon();
   }, 50);
+};
+
+/* ══════════════════════════════════════════════════════════
+   IMAGE VIEWER (lightbox)
+   ══════════════════════════════════════════════════════════ */
+var ImageViewer = {
+  _images: [],
+  _idx: 0,
+
+  open: function (images, idx) {
+    this._images = images;
+    this._idx    = idx || 0;
+    var el = document.getElementById('img-viewer');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'img-viewer';
+      el.innerHTML =
+        '<div id="img-viewer-overlay"></div>' +
+        '<button id="img-viewer-prev">‹</button>' +
+        '<img id="img-viewer-img" alt="">' +
+        '<button id="img-viewer-next">›</button>' +
+        '<button id="img-viewer-close">✕</button>' +
+        '<div id="img-viewer-counter"></div>';
+      document.body.appendChild(el);
+      document.getElementById('img-viewer-overlay').addEventListener('click', function(){ ImageViewer.close(); });
+      document.getElementById('img-viewer-close').addEventListener('click', function(){ ImageViewer.close(); });
+      document.getElementById('img-viewer-prev').addEventListener('click', function(){ ImageViewer.prev(); });
+      document.getElementById('img-viewer-next').addEventListener('click', function(){ ImageViewer.next(); });
+      document.addEventListener('keydown', function(e){
+        if (!document.getElementById('img-viewer').classList.contains('active')) return;
+        if (e.key === 'ArrowLeft') ImageViewer.prev();
+        if (e.key === 'ArrowRight') ImageViewer.next();
+        if (e.key === 'Escape') ImageViewer.close();
+      });
+    }
+    el.classList.add('active');
+    this._render();
+  },
+
+  _render: function () {
+    document.getElementById('img-viewer-img').src = this._images[this._idx];
+    document.getElementById('img-viewer-counter').textContent = (this._idx + 1) + ' / ' + this._images.length;
+    document.getElementById('img-viewer-prev').style.display = this._images.length > 1 ? '' : 'none';
+    document.getElementById('img-viewer-next').style.display = this._images.length > 1 ? '' : 'none';
+  },
+
+  prev: function () { this._idx = (this._idx - 1 + this._images.length) % this._images.length; this._render(); },
+  next: function () { this._idx = (this._idx + 1) % this._images.length; this._render(); },
+  close: function () {
+    var el = document.getElementById('img-viewer');
+    if (el) el.classList.remove('active');
+  }
 };
 
 // Init
