@@ -409,7 +409,7 @@ var Render = {
       '<div class="card-tags">'+tags+authorHtml+'</div>'+
       '<div class="card-title">'+esc(a.title)+'</div>'+
       (a.desc?'<div class="card-desc">'+esc(a.desc)+'</div>':'')+
-      (a.images&&a.images.length?'<div class="art-img-grid art-img-grid--'+Math.min(a.images.length,3)+'" data-imgs="'+esc(JSON.stringify(a.images))+'">'+a.images.map(function(u,i){return '<img src="'+esc(u)+'" alt="" loading="lazy" data-idx="'+i+'" class="art-img-thumb">';}).join('')+'</div>':'')+
+      (a.images&&a.images.length?'<div class="art-img-grid art-img-grid--'+Math.min(a.images.length,9)+'" data-imgs="'+esc(JSON.stringify(a.images))+'">'+a.images.map(function(u,i){return '<img src="'+esc(u)+'" alt="" loading="lazy" data-idx="'+i+'" class="art-img-thumb">';}).join('')+'</div>':'')+
       '<div class="card-actions">'+
       '<button class="act-btn'+(liked?' is-liked':'')+'" data-action="like" data-id="'+a.id+'">♥ <span>'+a.likes+'</span></button>'+
       '<button class="act-btn'+(saved?' is-saved':'')+'" data-action="save" data-id="'+a.id+'">◈ <span>'+(a.saves||0)+'</span></button>'+
@@ -541,7 +541,7 @@ var Article = {
       '</div>'+
       '<div class="art-title">'+esc(a.title)+'</div>'+
       (a.desc?'<div class="art-desc">'+esc(a.desc)+'</div>':'')+
-      (a.images&&a.images.length?'<div class="art-img-grid art-img-grid--'+Math.min(a.images.length,3)+'" data-imgs="'+esc(JSON.stringify(a.images))+'">'+a.images.map(function(u,i){return '<img src="'+esc(u)+'" alt="" loading="lazy" data-idx="'+i+'" class="art-img-thumb">';}).join('')+'</div>':'')+
+      (a.images&&a.images.length?'<div class="art-img-grid art-img-grid--'+Math.min(a.images.length,9)+'" data-imgs="'+esc(JSON.stringify(a.images))+'">'+a.images.map(function(u,i){return '<img src="'+esc(u)+'" alt="" loading="lazy" data-idx="'+i+'" class="art-img-thumb">';}).join('')+'</div>':'')+
       '<div class="art-actions">'+
       '<a href="'+a.url+'" target="_blank" rel="noopener" class="btn-read">阅读原文 ↗</a>'+
       '<button class="act-btn'+(liked?' is-liked':'')+'" id="modal-like-'+a.id+'" onclick="Interactions.like(\''+a.id+'\',this)">♥ <span>'+a.likes+'</span> 点赞</button>'+
