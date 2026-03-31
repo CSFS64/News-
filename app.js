@@ -1942,7 +1942,7 @@ document.addEventListener('DOMContentLoaded', function () {
   if (hash && hash.startsWith('#article/')) {
     var artId = hash.replace('#article/', '');
     if (artId) setTimeout(function(){
-      API.getArticle(artId).then(function(a){ if(a) Article.open(a); }).catch(function(){});
-    }, 1000);
+      Article.open(artId);
+    }, 1500);
   }
 });
