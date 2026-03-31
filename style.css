@@ -1629,10 +1629,17 @@ dialog::backdrop { background: transparent; }
 /* 3张：左大右两小 */
 #art-dlg-body .art-img-grid.art-img-grid--3 {
   grid-template-columns: 1fr 1fr !important;
-  grid-template-rows: 1fr 1fr !important;
+  grid-template-rows: auto auto !important;
+  grid-template-areas: "a b" "a c" !important;
 }
-#art-dlg-body .art-img-grid.art-img-grid--3 .art-img-thumb:first-child {
-  grid-row: 1 / 3 !important;
+#art-dlg-body .art-img-grid.art-img-grid--3 .art-img-thumb:nth-child(1) {
+  grid-area: a !important; aspect-ratio: 1 !important;
+}
+#art-dlg-body .art-img-grid.art-img-grid--3 .art-img-thumb:nth-child(2) {
+  grid-area: b !important;
+}
+#art-dlg-body .art-img-grid.art-img-grid--3 .art-img-thumb:nth-child(3) {
+  grid-area: c !important;
 }
 /* 4张：2×2 */
 #art-dlg-body .art-img-grid.art-img-grid--4 {
