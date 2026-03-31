@@ -1578,23 +1578,48 @@ dialog::backdrop { background: transparent; }
 }
 
 /* ── Article Image Grid ── */
+/* ── Card list image strip: horizontal scroll, 1:1 squares ── */
 .art-img-grid {
-  display: grid; gap: 3px;
-  margin: 10px 0; border-radius: 10px; overflow: hidden;
-  max-width: 380px;
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  margin: 10px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  border-radius: 8px;
+  max-width: 100%;
 }
-.art-img-grid--1 { grid-template-columns: 1fr; max-width: 340px; }
-.art-img-grid--2 { grid-template-columns: 1fr 1fr; max-width: 280px; }
-.art-img-grid--3 { grid-template-columns: 1fr 1fr 1fr; max-width: 380px; }
-.art-img-grid img, .art-img-grid .art-img-thumb {
-  width: 100%; aspect-ratio: 1; object-fit: cover;
-  cursor: pointer; transition: opacity 0.15s;
+.art-img-grid::-webkit-scrollbar { display: none; }
+.art-img-grid .art-img-thumb {
+  flex-shrink: 0;
+  width: 120px; height: 120px;
+  object-fit: cover;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: opacity 0.15s;
   display: block;
 }
-.art-img-grid--1 img, .art-img-grid--1 .art-img-thumb { aspect-ratio: 16/9; }
-.art-img-grid img:hover, .art-img-grid .art-img-thumb:hover { opacity: 0.85; }
-/* Article detail view — full width */
-#art-dlg-body .art-img-grid { max-width: 100%; }
+.art-img-grid .art-img-thumb:hover { opacity: 0.85; }
+
+/* ── Article detail: proper grid layout ── */
+#art-dlg-body .art-img-grid {
+  display: grid;
+  flex-direction: unset;
+  overflow: hidden;
+  gap: 3px;
+  border-radius: 10px;
+  max-width: 100%;
+}
+#art-dlg-body .art-img-grid.art-img-grid--1 { grid-template-columns: 1fr; }
+#art-dlg-body .art-img-grid.art-img-grid--2 { grid-template-columns: 1fr 1fr; }
+#art-dlg-body .art-img-grid.art-img-grid--3,
+#art-dlg-body .art-img-grid { grid-template-columns: 1fr 1fr 1fr; }
+#art-dlg-body .art-img-grid .art-img-thumb {
+  width: 100%; height: auto; flex-shrink: unset;
+  aspect-ratio: 1; border-radius: 0;
+}
+#art-dlg-body .art-img-grid.art-img-grid--1 .art-img-thumb { aspect-ratio: 16/9; }
 
 /* ── Image Viewer (lightbox) ── */
 #img-viewer {
