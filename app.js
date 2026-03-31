@@ -8,15 +8,34 @@
    ══════════════════════════════════════════════════════════ */
 var ImageUpload = {
   _stores: {},
+  _pasteInited: false,
 
   _store: function (prefix) {
     if (!this._stores[prefix]) this._stores[prefix] = { files: [], blobUrls: [] };
     return this._stores[prefix];
   },
 
+  _initGlobalPaste: function () {
+    if (this._pasteInited) return;
+    this._pasteInited = true;
+    var self = this;
+    document.addEventListener('paste', function (e) {
+      var openDlg = document.querySelector('.dialog.is-open');
+      if (!openDlg) return;
+      var area = openDlg.querySelector('[id$="-img-area"]');
+      if (!area) return;
+      var prefix = area.id.replace('-img-area', '');
+      var files = Array.from(e.clipboardData.items || [])
+        .filter(function(i){ return i.type.startsWith('image/'); })
+        .map(function(i){ return i.getAsFile(); }).filter(Boolean);
+      if (files.length) { e.preventDefault(); self._addFiles(prefix, files); }
+    });
+  },
+
   init: function (prefix) {
     var self = this;
-    var store = self._store(prefix);
+    self._store(prefix);
+    self._initGlobalPaste();
     var area  = document.getElementById(prefix + '-img-area');
     var input = document.getElementById(prefix + '-img-input');
     if (!area || !input || area._imgInited) return;
@@ -35,14 +54,6 @@ var ImageUpload = {
     area.addEventListener('drop', function (e) {
       e.preventDefault(); area.classList.remove('drag-over');
       self._addFiles(prefix, Array.from(e.dataTransfer.files).filter(function(f){ return f.type.startsWith('image/'); }));
-    });
-    document.addEventListener('paste', function (e) {
-      var dlg = area.closest('[id^="dlg-"]');
-      if (!dlg || !dlg.classList.contains('is-open')) return;
-      var files = Array.from(e.clipboardData.items || [])
-        .filter(function(i){ return i.type.startsWith('image/'); })
-        .map(function(i){ return i.getAsFile(); }).filter(Boolean);
-      if (files.length) self._addFiles(prefix, files);
     });
   },
 
@@ -1733,10 +1744,13 @@ Auth.renderHeader = function () {
 var ImageViewer = {
   _images: [],
   _idx: 0,
+  _scale: 1,
+  _inited: false,
 
   open: function (images, idx) {
     this._images = Array.isArray(images) ? images : [];
     this._idx    = idx || 0;
+    this._scale  = 1;
     var el = document.getElementById('img-viewer');
     if (!el) {
       el = document.createElement('div');
@@ -1749,6 +1763,7 @@ var ImageViewer = {
         '<button id="img-viewer-close">✕</button>' +
         '<div id="img-viewer-counter"></div>';
       document.body.appendChild(el);
+
       document.getElementById('img-viewer-overlay').addEventListener('click', function(){ ImageViewer.close(); });
       document.getElementById('img-viewer-close').addEventListener('click', function(){ ImageViewer.close(); });
       document.getElementById('img-viewer-prev').addEventListener('click', function(){ ImageViewer.prev(); });
@@ -1759,13 +1774,79 @@ var ImageViewer = {
         if (e.key === 'ArrowRight') ImageViewer.next();
         if (e.key === 'Escape') ImageViewer.close();
       });
+
+      // Touch: swipe left/right to navigate, pinch to zoom
+      var img = document.getElementById('img-viewer-img');
+      var touchStartX = 0, touchStartY = 0;
+      var pinchStartDist = 0, pinchStartScale = 1;
+      var isDragging = false;
+
+      img.addEventListener('touchstart', function(e) {
+        if (e.touches.length === 2) {
+          pinchStartDist = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+          );
+          pinchStartScale = ImageViewer._scale;
+        } else {
+          touchStartX = e.touches[0].clientX;
+          touchStartY = e.touches[0].clientY;
+          isDragging = false;
+        }
+      }, { passive: true });
+
+      img.addEventListener('touchmove', function(e) {
+        if (e.touches.length === 2) {
+          e.preventDefault();
+          var dist = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+          );
+          ImageViewer._scale = Math.min(4, Math.max(1, pinchStartScale * dist / pinchStartDist));
+          img.style.transform = 'scale(' + ImageViewer._scale + ')';
+        } else if (e.touches.length === 1) {
+          var dx = e.touches[0].clientX - touchStartX;
+          if (Math.abs(dx) > 10) isDragging = true;
+        }
+      }, { passive: false });
+
+      img.addEventListener('touchend', function(e) {
+        if (e.touches.length > 0) return;
+        if (ImageViewer._scale > 1) {
+          // Reset zoom on double-tap-like release
+          return;
+        }
+        var dx = e.changedTouches[0].clientX - touchStartX;
+        var dy = e.changedTouches[0].clientY - touchStartY;
+        if (isDragging && Math.abs(dx) > 50 && Math.abs(dy) < 80) {
+          if (dx < 0) ImageViewer.next();
+          else ImageViewer.prev();
+        }
+        isDragging = false;
+      }, { passive: true });
+
+      // Double tap to reset zoom
+      var lastTap = 0;
+      img.addEventListener('touchend', function(e) {
+        var now = Date.now();
+        if (now - lastTap < 300) {
+          ImageViewer._scale = 1;
+          img.style.transform = 'scale(1)';
+        }
+        lastTap = now;
+      }, { passive: true });
     }
+    var img2 = document.getElementById('img-viewer-img');
+    if (img2) img2.style.transform = 'scale(1)';
     el.classList.add('active');
     this._render();
   },
 
   _render: function () {
-    document.getElementById('img-viewer-img').src = this._images[this._idx];
+    var img = document.getElementById('img-viewer-img');
+    img.src = this._images[this._idx];
+    img.style.transform = 'scale(1)';
+    this._scale = 1;
     document.getElementById('img-viewer-counter').textContent = (this._idx + 1) + ' / ' + this._images.length;
     document.getElementById('img-viewer-prev').style.display = this._images.length > 1 ? '' : 'none';
     document.getElementById('img-viewer-next').style.display = this._images.length > 1 ? '' : 'none';
@@ -1775,7 +1856,12 @@ var ImageViewer = {
   next: function () { this._idx = (this._idx + 1) % this._images.length; this._render(); },
   close: function () {
     var el = document.getElementById('img-viewer');
-    if (el) el.classList.remove('active');
+    if (el) {
+      el.classList.remove('active');
+      var img = document.getElementById('img-viewer-img');
+      if (img) img.style.transform = 'scale(1)';
+      this._scale = 1;
+    }
   }
 };
 
