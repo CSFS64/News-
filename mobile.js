@@ -692,6 +692,7 @@ var Mobile = {
       '<div class="card-actions">' +
         '<button class="act-btn' + (liked ? ' is-liked' : '') + '" data-action="like" data-id="' + a.id + '">♥ <span>' + a.likes + '</span></button>' +
         '<button class="act-btn' + (saved ? ' is-saved' : '') + '" data-action="save" data-id="' + a.id + '">◈ <span>' + (a.saves || 0) + '</span></button>' +
+       '<button class="act-btn" data-action="share" data-id="' + a.id + '" title="复制链接">🔗</button>' +
         '<button class="act-btn-read" data-action="open" data-id="' + a.id + '">阅读 &rsaquo;</button>' +
       '</div>' +
     '</div>';
