@@ -549,9 +549,9 @@ var Article = {
       (a.images&&a.images.length?'<div class="art-img-grid art-img-grid--'+Math.min(a.images.length,9)+'" data-imgs="'+esc(JSON.stringify(a.images))+'">'+a.images.map(function(u,i){return '<img src="'+esc(u)+'" alt="" loading="lazy" data-idx="'+i+'" class="art-img-thumb">';}).join('')+'</div>':'')+
       '<div class="art-actions">'+
       '<a href="'+a.url+'" target="_blank" rel="noopener" class="btn-read">阅读原文 ↗</a>'+
-       '<button class="act-btn" onclick="(function(){var u=location.origin+location.pathname+\'#article/'+a.id+'\';navigator.clipboard.writeText(u).then(function(){Toast.show(\'链接已复制 ✓\');}).catch(function(){prompt(\'复制链接：\',u);});})()">🔗 复制链接</button>'+
       '<button class="act-btn'+(liked?' is-liked':'')+'" id="modal-like-'+a.id+'" onclick="Interactions.like(\''+a.id+'\',this)">♥ <span>'+a.likes+'</span> 点赞</button>'+
       '<button class="act-btn'+(saved?' is-saved':'')+'" id="modal-save-'+a.id+'" onclick="Interactions.save(\''+a.id+'\',this)">◈ <span>'+(a.saves||0)+'</span> 收藏</button>'+
+      '<button class="act-btn" onclick="(function(){var u=location.origin+location.pathname+\'#article/'+a.id+'\';navigator.clipboard.writeText(u).then(function(){Toast.show(\'链接已复制 ✓\');}).catch(function(){prompt(\'复制链接：\',u);});})()">🔗 复制链接</button>'+
       '</div>'+
       '<div class="comments-section">'+
       '<div class="comments-head" id="comments-head-'+a.id+'">评论 ('+(a.commentsCount||a.comments&&a.comments.length||0)+')</div>'+
