@@ -833,14 +833,3 @@ input, textarea, select { font-size: 16px !important; }
 .m-notif { transition: background 0.3s ease, border-left-color 0.3s ease; }
 
 } /* end @media */
-
-/* ── Article Image Grid (mobile) ── */
-.art-img-grid { border-radius: 8px; margin: 8px 0; }
-.art-img-grid--1 img { aspect-ratio: 16/9; max-height: 220px; }
-.art-img-grid--2 { grid-template-columns: 1fr 1fr; }
-.art-img-grid--2 img { aspect-ratio: 1; }
-.art-img-grid--3 { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; }
-.art-img-grid--3 .art-img-thumb:first-child { grid-column: 1 / -1; aspect-ratio: 16/9; }
-.art-img-grid--3 .art-img-thumb:not(:first-child) { aspect-ratio: 1; }
-#img-viewer-prev { left: 8px; }
-#img-viewer-next { right: 8px; }
