@@ -409,7 +409,7 @@ var Render = {
       '<div class="card-tags">'+tags+authorHtml+'</div>'+
       '<div class="card-title">'+esc(a.title)+'</div>'+
       (a.desc?'<div class="card-desc">'+esc(a.desc)+'</div>':'')+
-      (a.images&&a.images.length?(function(){var imgs=a.images;return '<div class="art-img-grid art-img-grid--'+Math.min(imgs.length,3)+'" data-imgs="'+esc(JSON.stringify(imgs))+'">'+imgs.map(function(u,i){return '<img src="'+esc(u)+'" alt="" loading="lazy" data-idx="'+i+'" class="art-img-thumb">';}).join('')+'</div>';})():'')+
+      (a.images&&a.images.length?'<div class="art-img-grid art-img-grid--'+Math.min(a.images.length,3)+'" data-imgs="'+esc(JSON.stringify(a.images))+'">'+a.images.map(function(u,i){return '<img src="'+esc(u)+'" alt="" loading="lazy" data-idx="'+i+'" class="art-img-thumb">';}).join('')+'</div>':'')+
       '<div class="card-actions">'+
       '<button class="act-btn'+(liked?' is-liked':'')+'" data-action="like" data-id="'+a.id+'">♥ <span>'+a.likes+'</span></button>'+
       '<button class="act-btn'+(saved?' is-saved':'')+'" data-action="save" data-id="'+a.id+'">◈ <span>'+(a.saves||0)+'</span></button>'+
@@ -541,7 +541,7 @@ var Article = {
       '</div>'+
       '<div class="art-title">'+esc(a.title)+'</div>'+
       (a.desc?'<div class="art-desc">'+esc(a.desc)+'</div>':'')+
-      (a.images&&a.images.length?(function(){var imgs=a.images;return '<div class="art-img-grid art-img-grid--'+Math.min(imgs.length,3)+'" data-imgs="'+esc(JSON.stringify(imgs))+'">'+imgs.map(function(u,i){return '<img src="'+esc(u)+'" alt="" loading="lazy" data-idx="'+i+'" class="art-img-thumb">';}).join('')+'</div>';})():'')+
+      (a.images&&a.images.length?'<div class="art-img-grid art-img-grid--'+Math.min(a.images.length,3)+'" data-imgs="'+esc(JSON.stringify(a.images))+'">'+a.images.map(function(u,i){return '<img src="'+esc(u)+'" alt="" loading="lazy" data-idx="'+i+'" class="art-img-thumb">';}).join('')+'</div>':'')+
       '<div class="art-actions">'+
       '<a href="'+a.url+'" target="_blank" rel="noopener" class="btn-read">阅读原文 ↗</a>'+
       '<button class="act-btn'+(liked?' is-liked':'')+'" id="modal-like-'+a.id+'" onclick="Interactions.like(\''+a.id+'\',this)">♥ <span>'+a.likes+'</span> 点赞</button>'+
@@ -1746,7 +1746,7 @@ var ImageViewer = {
   _idx: 0,
   _scale: 1,
   _inited: false,
-
+  _store: {},
   open: function (images, idx) {
     this._images = Array.isArray(images) ? images : [];
     this._idx    = idx || 0;
@@ -1780,17 +1780,32 @@ var ImageViewer = {
       var touchStartX = 0, touchStartY = 0;
       var pinchStartDist = 0, pinchStartScale = 1;
       var isDragging = false;
+      var isPinching = false;
+      var panX = 0, panY = 0, startPanX = 0, startPanY = 0;
+
+      function applyTransform() {
+        img.style.transform = 'translate(' + panX + 'px,' + panY + 'px) scale(' + ImageViewer._scale + ')';
+      }
 
       img.addEventListener('touchstart', function(e) {
         if (e.touches.length === 2) {
+          isPinching = true;
           pinchStartDist = Math.hypot(
             e.touches[0].clientX - e.touches[1].clientX,
             e.touches[0].clientY - e.touches[1].clientY
           );
           pinchStartScale = ImageViewer._scale;
-        } else {
+          // Set transform origin to midpoint of two fingers
+          var rect = img.getBoundingClientRect();
+          var midX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
+          var midY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
+          img.style.transformOrigin = midX + 'px ' + midY + 'px';
+        } else if (e.touches.length === 1) {
+          isPinching = false;
           touchStartX = e.touches[0].clientX;
           touchStartY = e.touches[0].clientY;
+          startPanX = panX;
+          startPanY = panY;
           isDragging = false;
         }
       }, { passive: true });
@@ -1803,35 +1818,70 @@ var ImageViewer = {
             e.touches[0].clientY - e.touches[1].clientY
           );
           ImageViewer._scale = Math.min(4, Math.max(1, pinchStartScale * dist / pinchStartDist));
-          img.style.transform = 'scale(' + ImageViewer._scale + ')';
+          if (ImageViewer._scale <= 1) { panX = 0; panY = 0; }
+          applyTransform();
         } else if (e.touches.length === 1) {
           var dx = e.touches[0].clientX - touchStartX;
-          if (Math.abs(dx) > 10) isDragging = true;
+          var dy = e.touches[0].clientY - touchStartY;
+          if (Math.abs(dx) > 8 || Math.abs(dy) > 8) isDragging = true;
+          if (ImageViewer._scale > 1) {
+            // Pan when zoomed
+            e.preventDefault();
+            panX = startPanX + dx;
+            panY = startPanY + dy;
+            applyTransform();
+          }
         }
       }, { passive: false });
 
       img.addEventListener('touchend', function(e) {
-        if (e.touches.length > 0) return;
-        if (ImageViewer._scale > 1) {
-          // Reset zoom on double-tap-like release
+        if (e.touches.length === 1 && isPinching) {
+          // One finger still on screen after pinch - switch to pan mode
+          isPinching = false;
+          touchStartX = e.touches[0].clientX;
+          touchStartY = e.touches[0].clientY;
+          startPanX = panX;
+          startPanY = panY;
           return;
         }
-        var dx = e.changedTouches[0].clientX - touchStartX;
-        var dy = e.changedTouches[0].clientY - touchStartY;
-        if (isDragging && Math.abs(dx) > 50 && Math.abs(dy) < 80) {
-          if (dx < 0) ImageViewer.next();
-          else ImageViewer.prev();
+        if (e.touches.length > 0) return;
+        if (isPinching) {
+          isPinching = false;
+          // Keep scale as-is — don't reset
+          if (ImageViewer._scale <= 1.05) {
+            ImageViewer._scale = 1; panX = 0; panY = 0;
+            img.style.transformOrigin = 'center';
+            applyTransform();
+          }
+          return;
+        }
+        // Single finger swipe to navigate (only when not zoomed)
+        if (ImageViewer._scale <= 1) {
+          var dx = e.changedTouches[0].clientX - touchStartX;
+          var dy = e.changedTouches[0].clientY - touchStartY;
+          if (isDragging && Math.abs(dx) > 50 && Math.abs(dy) < 80) {
+            if (dx < 0) ImageViewer.next();
+            else ImageViewer.prev();
+          }
         }
         isDragging = false;
       }, { passive: true });
 
-      // Double tap to reset zoom
+      // Double tap to toggle zoom
       var lastTap = 0;
       img.addEventListener('touchend', function(e) {
         var now = Date.now();
         if (now - lastTap < 300) {
-          ImageViewer._scale = 1;
-          img.style.transform = 'scale(1)';
+          if (ImageViewer._scale > 1) {
+            ImageViewer._scale = 1; panX = 0; panY = 0;
+            img.style.transformOrigin = 'center';
+          } else {
+            ImageViewer._scale = 2;
+            var t = e.changedTouches[0];
+            var rect = img.getBoundingClientRect();
+            img.style.transformOrigin = (t.clientX - rect.left) + 'px ' + (t.clientY - rect.top) + 'px';
+          }
+          applyTransform();
         }
         lastTap = now;
       }, { passive: true });
@@ -1845,7 +1895,8 @@ var ImageViewer = {
   _render: function () {
     var img = document.getElementById('img-viewer-img');
     img.src = this._images[this._idx];
-    img.style.transform = 'scale(1)';
+    img.style.transform = 'translate(0,0) scale(1)';
+    img.style.transformOrigin = 'center';
     this._scale = 1;
     document.getElementById('img-viewer-counter').textContent = (this._idx + 1) + ' / ' + this._images.length;
     document.getElementById('img-viewer-prev').style.display = this._images.length > 1 ? '' : 'none';
@@ -1865,17 +1916,19 @@ var ImageViewer = {
   }
 };
 
-// Global click handler for image grids (avoids inline JSON issues)
+// Global click handler for image grids
 document.addEventListener('click', function (e) {
   var thumb = e.target.closest('.art-img-thumb');
   if (!thumb) return;
+  e.stopPropagation();
+  e.preventDefault();
   var grid = thumb.closest('.art-img-grid');
   if (!grid) return;
   var imgs;
   try { imgs = JSON.parse(grid.dataset.imgs || '[]'); } catch(_) { imgs = []; }
   var idx = parseInt(thumb.dataset.idx) || 0;
   if (imgs.length) ImageViewer.open(imgs, idx);
-});
+}, true); // capture phase to intercept before card click
 
 // Init
 document.addEventListener('DOMContentLoaded', function () {
