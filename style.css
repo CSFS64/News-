@@ -806,10 +806,6 @@ dialog::backdrop { background: transparent; }
 }
 .dialog-wide { width: 680px; }
 
-#dlg-article.dialog-wide {
-  width: min(960px, calc(100vw - 48px)) !important;
-}
-
 .dlg-head {
   padding: 14px 18px;
   background: var(--bg3);
