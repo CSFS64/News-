@@ -1602,24 +1602,29 @@ dialog::backdrop { background: transparent; }
 }
 .art-img-grid .art-img-thumb:hover { opacity: 0.85; }
 
-/* ── Article detail: proper grid layout ── */
+/* ── Article detail: proper grid layout (overrides above) ── */
 #art-dlg-body .art-img-grid {
-  display: grid;
-  flex-direction: unset;
-  overflow: hidden;
-  gap: 3px;
-  border-radius: 10px;
-  max-width: 100%;
+  display: grid !important;
+  flex-direction: unset !important;
+  overflow: hidden !important;
+  gap: 3px !important;
+  border-radius: 10px !important;
+  max-width: 100% !important;
+  grid-template-columns: 1fr 1fr 1fr;
 }
-#art-dlg-body .art-img-grid.art-img-grid--1 { grid-template-columns: 1fr; }
-#art-dlg-body .art-img-grid.art-img-grid--2 { grid-template-columns: 1fr 1fr; }
-#art-dlg-body .art-img-grid.art-img-grid--3,
-#art-dlg-body .art-img-grid { grid-template-columns: 1fr 1fr 1fr; }
+#art-dlg-body .art-img-grid.art-img-grid--1 { grid-template-columns: 1fr !important; }
+#art-dlg-body .art-img-grid.art-img-grid--2 { grid-template-columns: 1fr 1fr !important; }
+#art-dlg-body .art-img-grid.art-img-grid--3 { grid-template-columns: 1fr 1fr 1fr !important; }
 #art-dlg-body .art-img-grid .art-img-thumb {
-  width: 100%; height: auto; flex-shrink: unset;
-  aspect-ratio: 1; border-radius: 0;
+  width: 100% !important;
+  height: auto !important;
+  flex-shrink: unset !important;
+  aspect-ratio: 1 !important;
+  border-radius: 0 !important;
 }
-#art-dlg-body .art-img-grid.art-img-grid--1 .art-img-thumb { aspect-ratio: 16/9; }
+#art-dlg-body .art-img-grid.art-img-grid--1 .art-img-thumb {
+  aspect-ratio: 16/9 !important;
+}
 
 /* ── Image Viewer (lightbox) ── */
 #img-viewer {
