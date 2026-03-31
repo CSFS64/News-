@@ -414,6 +414,7 @@ var Render = {
       '<button class="act-btn'+(liked?' is-liked':'')+'" data-action="like" data-id="'+a.id+'">♥ <span>'+a.likes+'</span></button>'+
       '<button class="act-btn'+(saved?' is-saved':'')+'" data-action="save" data-id="'+a.id+'">◈ <span>'+(a.saves||0)+'</span></button>'+
       '<button class="act-btn" data-action="comment" data-id="'+a.id+'">💬 '+(a.commentsCount||0)+'</button>'+
+      '<button class="act-btn" data-action="share" data-id="'+a.id+'" title="复制链接">🔗</button>'+
       '<button class="act-btn act-btn-read" data-action="open" data-id="'+a.id+'">阅读 →</button>'+
       '</div></div></div></div>';
   }
@@ -433,6 +434,10 @@ document.addEventListener('click', function (e) {
     if (action==='save')    Interactions.save(id, btn);
     if (action==='comment') Article.open(id, true);
     if (action==='open')    Article.open(id);
+   if (action==='share') {
+     var shareUrl = location.origin + location.pathname + '#article/' + id;
+     navigator.clipboard.writeText(shareUrl).then(function(){ Toast.show('链接已复制 ✓'); }).catch(function(){ prompt('复制链接：', shareUrl); });
+   }
     return;
   }
 
@@ -1933,4 +1938,11 @@ document.addEventListener('click', function (e) {
 // Init
 document.addEventListener('DOMContentLoaded', function () {
   setTimeout(function () { MobileNav.init(); }, 120);
+  var hash = location.hash;
+  if (hash && hash.startsWith('#article/')) {
+    var artId = hash.replace('#article/', '');
+    if (artId) setTimeout(function(){
+      API.getArticle(artId).then(function(a){ if(a) Article.open(a); }).catch(function(){});
+    }, 1000);
+  }
 });
