@@ -1602,61 +1602,61 @@ dialog::backdrop { background: transparent; }
 }
 .art-img-grid .art-img-thumb:hover { opacity: 0.85; }
 
-/* ── Article detail: adaptive image layout (keep current dialog width) ── */
+/* ── Article detail: stable image layout (1~9) ── */
 #art-dlg-body .art-img-grid {
   display: grid !important;
-  gap: 3px !important;
+  gap: 4px !important;
   overflow: hidden !important;
   border-radius: 10px !important;
   max-width: 100% !important;
   margin: 12px 0 16px !important;
   background: var(--bg3);
+  align-items: stretch !important;
 }
 
 #art-dlg-body .art-img-grid .art-img-thumb {
   display: block !important;
   width: 100% !important;
-  height: auto !important;
+  height: 100% !important;
   min-width: 0 !important;
   min-height: 0 !important;
   object-fit: cover !important;
   border-radius: 0 !important;
+  flex-shrink: unset !important;
 }
 
-/* 1 张：完全按原图比例自适应 */
+/* 1 张：完全独立处理，最稳定 */
 #art-dlg-body .art-img-grid.art-img-grid--1 {
   display: block !important;
+  background: transparent !important;
 }
 #art-dlg-body .art-img-grid.art-img-grid--1 .art-img-thumb {
   width: 100% !important;
   height: auto !important;
-  max-height: 70vh !important;
+  max-height: 68vh !important;
   object-fit: contain !important;
   border-radius: 10px !important;
+  background: var(--bg3);
 }
 
-/* 2 张：左右 */
+/* 2 张 */
 #art-dlg-body .art-img-grid.art-img-grid--2 {
-  grid-template-columns: 1fr 1fr !important;
-  align-items: start !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
 }
 #art-dlg-body .art-img-grid.art-img-grid--2 .art-img-thumb {
   aspect-ratio: 1 / 1 !important;
-  height: auto !important;
 }
 
-/* 3 张：左大右上下，但高度由比例决定，不写死 px */
+/* 3 张：左大右上下，去掉 1fr 行高 */
 #art-dlg-body .art-img-grid.art-img-grid--3 {
-  grid-template-columns: 2fr 1fr !important;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) !important;
   grid-template-areas:
     "a b"
     "a c" !important;
-  align-items: stretch !important;
 }
 #art-dlg-body .art-img-grid.art-img-grid--3 .art-img-thumb:nth-child(1) {
   grid-area: a !important;
   aspect-ratio: 4 / 5 !important;
-  height: 100% !important;
 }
 #art-dlg-body .art-img-grid.art-img-grid--3 .art-img-thumb:nth-child(2) {
   grid-area: b !important;
@@ -1667,17 +1667,17 @@ dialog::backdrop { background: transparent; }
   aspect-ratio: 1 / 1 !important;
 }
 
-/* 4 张：2x2 */
+/* 4 张 */
 #art-dlg-body .art-img-grid.art-img-grid--4 {
-  grid-template-columns: 1fr 1fr !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
 }
 #art-dlg-body .art-img-grid.art-img-grid--4 .art-img-thumb {
   aspect-ratio: 1 / 1 !important;
 }
 
-/* 5 张：左大 + 右侧四小 */
+/* 5 张：左大 + 右四小 */
 #art-dlg-body .art-img-grid.art-img-grid--5 {
-  grid-template-columns: 2fr 1fr 1fr !important;
+  grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr)) !important;
   grid-template-areas:
     "a b c"
     "a d e" !important;
@@ -1685,31 +1685,100 @@ dialog::backdrop { background: transparent; }
 #art-dlg-body .art-img-grid.art-img-grid--5 .art-img-thumb:nth-child(1) {
   grid-area: a !important;
   aspect-ratio: 4 / 5 !important;
-  height: 100% !important;
 }
-#art-dlg-body .art-img-grid.art-img-grid--5 .art-img-thumb:nth-child(2) { grid-area: b !important; aspect-ratio: 1 / 1 !important; }
-#art-dlg-body .art-img-grid.art-img-grid--5 .art-img-thumb:nth-child(3) { grid-area: c !important; aspect-ratio: 1 / 1 !important; }
-#art-dlg-body .art-img-grid.art-img-grid--5 .art-img-thumb:nth-child(4) { grid-area: d !important; aspect-ratio: 1 / 1 !important; }
-#art-dlg-body .art-img-grid.art-img-grid--5 .art-img-thumb:nth-child(5) { grid-area: e !important; aspect-ratio: 1 / 1 !important; }
+#art-dlg-body .art-img-grid.art-img-grid--5 .art-img-thumb:nth-child(2) {
+  grid-area: b !important;
+  aspect-ratio: 1 / 1 !important;
+}
+#art-dlg-body .art-img-grid.art-img-grid--5 .art-img-thumb:nth-child(3) {
+  grid-area: c !important;
+  aspect-ratio: 1 / 1 !important;
+}
+#art-dlg-body .art-img-grid.art-img-grid--5 .art-img-thumb:nth-child(4) {
+  grid-area: d !important;
+  aspect-ratio: 1 / 1 !important;
+}
+#art-dlg-body .art-img-grid.art-img-grid--5 .art-img-thumb:nth-child(5) {
+  grid-area: e !important;
+  aspect-ratio: 1 / 1 !important;
+}
 
-/* 6 张：3列宫格 */
+/* 6 张 */
 #art-dlg-body .art-img-grid.art-img-grid--6 {
-  grid-template-columns: repeat(3, 1fr) !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
 }
 #art-dlg-body .art-img-grid.art-img-grid--6 .art-img-thumb {
   aspect-ratio: 1 / 1 !important;
 }
 
-/* 7~9 张：统一宫格，更稳 */
-#art-dlg-body .art-img-grid.art-img-grid--7,
-#art-dlg-body .art-img-grid.art-img-grid--8,
-#art-dlg-body .art-img-grid.art-img-grid--9 {
-  grid-template-columns: repeat(3, 1fr) !important;
+/* 7 张：上方一张横大图 + 下方 6 宫格 */
+#art-dlg-body .art-img-grid.art-img-grid--7 {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  grid-template-areas:
+    "a a a"
+    "b c d"
+    "e f g" !important;
 }
-#art-dlg-body .art-img-grid.art-img-grid--7 .art-img-thumb,
-#art-dlg-body .art-img-grid.art-img-grid--8 .art-img-thumb,
+#art-dlg-body .art-img-grid.art-img-grid--7 .art-img-thumb:nth-child(1) {
+  grid-area: a !important;
+  aspect-ratio: 16 / 8 !important;
+}
+#art-dlg-body .art-img-grid.art-img-grid--7 .art-img-thumb:nth-child(2) { grid-area: b !important; aspect-ratio: 1 / 1 !important; }
+#art-dlg-body .art-img-grid.art-img-grid--7 .art-img-thumb:nth-child(3) { grid-area: c !important; aspect-ratio: 1 / 1 !important; }
+#art-dlg-body .art-img-grid.art-img-grid--7 .art-img-thumb:nth-child(4) { grid-area: d !important; aspect-ratio: 1 / 1 !important; }
+#art-dlg-body .art-img-grid.art-img-grid--7 .art-img-thumb:nth-child(5) { grid-area: e !important; aspect-ratio: 1 / 1 !important; }
+#art-dlg-body .art-img-grid.art-img-grid--7 .art-img-thumb:nth-child(6) { grid-area: f !important; aspect-ratio: 1 / 1 !important; }
+#art-dlg-body .art-img-grid.art-img-grid--7 .art-img-thumb:nth-child(7) { grid-area: g !important; aspect-ratio: 1 / 1 !important; }
+
+/* 8 张：上方一张横大图 + 下方 7 图 */
+#art-dlg-body .art-img-grid.art-img-grid--8 {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  grid-template-areas:
+    "a a a"
+    "b c d"
+    "e f g"
+    "h h ." !important;
+}
+#art-dlg-body .art-img-grid.art-img-grid--8 .art-img-thumb:nth-child(1) {
+  grid-area: a !important;
+  aspect-ratio: 16 / 8 !important;
+}
+#art-dlg-body .art-img-grid.art-img-grid--8 .art-img-thumb:nth-child(2) { grid-area: b !important; aspect-ratio: 1 / 1 !important; }
+#art-dlg-body .art-img-grid.art-img-grid--8 .art-img-thumb:nth-child(3) { grid-area: c !important; aspect-ratio: 1 / 1 !important; }
+#art-dlg-body .art-img-grid.art-img-grid--8 .art-img-thumb:nth-child(4) { grid-area: d !important; aspect-ratio: 1 / 1 !important; }
+#art-dlg-body .art-img-grid.art-img-grid--8 .art-img-thumb:nth-child(5) { grid-area: e !important; aspect-ratio: 1 / 1 !important; }
+#art-dlg-body .art-img-grid.art-img-grid--8 .art-img-thumb:nth-child(6) { grid-area: f !important; aspect-ratio: 1 / 1 !important; }
+#art-dlg-body .art-img-grid.art-img-grid--8 .art-img-thumb:nth-child(7) { grid-area: g !important; aspect-ratio: 1 / 1 !important; }
+#art-dlg-body .art-img-grid.art-img-grid--8 .art-img-thumb:nth-child(8) { grid-area: h !important; aspect-ratio: 2 / 1 !important; }
+
+/* 9 张：3x3 最稳 */
+#art-dlg-body .art-img-grid.art-img-grid--9 {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
 #art-dlg-body .art-img-grid.art-img-grid--9 .art-img-thumb {
   aspect-ratio: 1 / 1 !important;
+}
+
+/* 评论框展开时，不让正文图片区继续被极限压扁 */
+#dlg-article .dlg-body {
+  min-height: 0 !important;
+}
+#art-dlg-body {
+  min-height: 0 !important;
+}
+.comments-section {
+  min-height: 0 !important;
+}
+
+/* 小屏幕下稍微缩一点 */
+@media (max-width: 768px) {
+  #art-dlg-body .art-img-grid {
+    gap: 3px !important;
+  }
+
+  #art-dlg-body .art-img-grid.art-img-grid--1 .art-img-thumb {
+    max-height: 52vh !important;
+  }
 }
 
 /* ── Image Viewer (lightbox) ── */
