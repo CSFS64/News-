@@ -846,4 +846,7 @@ input, textarea, select { font-size: 16px !important; }
   overflow-x: hidden;
   max-width: 100%;
 }
+.comment-item[style*="margin-left"] {
+  margin-left: 12px !important;
+}
 } /* end @media */
