@@ -530,7 +530,7 @@
         <div class="fl-benefit">
           <div class="fl-benefit-icon">🔔</div>
           <div class="fl-benefit-text">
-            <div class="fl-benefit-title">推送通知</div>
+            <div class="fl-benefit-title">推送通知（正在开发）</div>
             <div class="fl-benefit-sub">重大战报第一时间推送到桌面</div>
           </div>
         </div>
