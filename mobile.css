@@ -842,4 +842,8 @@ input, textarea, select { font-size: 16px !important; }
   overflow-wrap: break-word;
   max-width: 100%;
 }
+#comment-tree, .comments-section {
+  overflow-x: hidden;
+  max-width: 100%;
+}
 } /* end @media */
