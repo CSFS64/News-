@@ -832,4 +832,9 @@ input, textarea, select { font-size: 16px !important; }
 /* ── Notif unread → read fade ── */
 .m-notif { transition: background 0.3s ease, border-left-color 0.3s ease; }
 
+/* ── 长链接换行 ── */
+.card-desc, .art-desc, .m-art-desc, .comment-body {
+  word-break: break-all;
+  overflow-wrap: break-word;
+}
 } /* end @media */
