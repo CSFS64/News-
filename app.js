@@ -96,6 +96,27 @@ var ImageUpload = {
     this._render(prefix);
   },
 
+  _compress: function(file) {
+    return new Promise(function(resolve) {
+      var maxW = 1280, maxH = 1280, quality = 0.82;
+      var img = new Image();
+      var url = URL.createObjectURL(file);
+      img.onload = function() {
+        URL.revokeObjectURL(url);
+        var w = img.width, h = img.height;
+        if (w <= maxW && h <= maxH) { resolve(file); return; }
+        var scale = Math.min(maxW/w, maxH/h);
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.round(w * scale);
+        canvas.height = Math.round(h * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(function(blob){ resolve(blob || file); }, 'image/jpeg', quality);
+      };
+      img.onerror = function() { resolve(file); };
+      img.src = url;
+    });
+  },
+
   uploadAll: function (prefix) {
     var store = this._store(prefix);
     if (!store.files.length) return Promise.resolve([]);
@@ -104,15 +125,19 @@ var ImageUpload = {
         try { var p = JSON.parse(r); return typeof p === 'string' ? p : r; } catch (e) { return r; }
       } catch (e) { return ''; }
     })();
+    var self = this;
     var apiBase = (typeof API_BASE_URL !== 'undefined' ? API_BASE_URL : 'https://api.kalyna.homes');
     return Promise.all(store.files.map(function (f) {
-      var fd = new FormData(); fd.append('file', f);
-      return fetch(apiBase + '/media/upload', {
-        method: 'POST', headers: { 'Authorization': 'Bearer ' + token }, body: fd
-      }).then(function (r) {
-        if (!r.ok) return r.json().then(function(e){ throw new Error(e.error || '上传失败'); });
-        return r.json();
-      }).then(function (d) { return d.url; });
+      return self._compress(f).then(function(blob) {
+        var fd = new FormData();
+        fd.append('file', blob, f.name || 'image.jpg');
+        return fetch(apiBase + '/media/upload', {
+          method: 'POST', headers: { 'Authorization': 'Bearer ' + token }, body: fd
+        }).then(function (r) {
+          if (!r.ok) return r.json().then(function(e){ throw new Error(e.error || '上传失败'); });
+          return r.json();
+        }).then(function (d) { return d.url; });
+      });
     }));
   },
 
