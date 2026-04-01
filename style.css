@@ -1050,7 +1050,11 @@ dialog::backdrop { background: transparent; }
 .comment-meta { display: flex; gap: 10px; align-items: center; margin-bottom: 5px; }
 .comment-user { font-family: var(--mono); font-size: 11px; color: var(--olive-light); font-weight: 700; }
 .comment-time { font-family: var(--mono); font-size: 10px; color: var(--text-dim); }
-.comment-body { font-family: var(--body); font-size: 13px; color: var(--text); line-height: 1.6; }
+.comment-body {
+  font-family: var(--body); font-size: 13px; color: var(--text); line-height: 1.6;
+  word-break: break-all;
+  overflow-wrap: break-word;
+}
 
 /* ── ADMIN PANEL ── */
 #admin-tabs {
@@ -1225,7 +1229,11 @@ dialog::backdrop { background: transparent; }
 }
 .comment-user:hover { color: var(--text-bright); }
 .comment-time { font-family: var(--mono); font-size: 10px; color: var(--text-dim); }
-.comment-body { font-family: var(--body); font-size: 13px; color: var(--text); line-height: 1.6; }
+.comment-body {
+  font-family: var(--body); font-size: 13px; color: var(--text); line-height: 1.6;
+  word-break: break-all;
+  overflow-wrap: break-word;
+}
 
 /* Comment like button */
 .cmt-like-btn {
