@@ -60,12 +60,27 @@ var ImageUpload = {
   _addFiles: function (prefix, files) {
     var store = this._store(prefix);
     var room = 9 - store.files.length;
-    if (!room) { Toast.show('最多上传9张图片', true); return; }
+    if (!room) { Toast.show('最多上传9个文件', true); return; }
+    var rejected = [];
+    var added = 0;
+    var self = this;
     files.slice(0, room).forEach(function (f) {
+      // 视频大小检查：所有视频总和不超过 30MB
+      if (f.type.startsWith('video/')) {
+        var currentVideoSize = store.files
+          .filter(function(x){ return x.type.startsWith('video/'); })
+          .reduce(function(sum, x){ return sum + x.size; }, 0);
+        if (currentVideoSize + f.size > 30 * 1024 * 1024) {
+          rejected.push(f.name || '视频');
+          return;
+        }
+      }
       store.files.push(f);
       store.blobUrls.push(URL.createObjectURL(f));
+      added++;
     });
-    this._render(prefix);
+    if (rejected.length) Toast.show('视频总大小超过30MB，已跳过 ' + rejected.length + ' 个文件', true);
+    if (added) self._render(prefix);
   },
 
   _render: function (prefix) {
