@@ -2184,7 +2184,7 @@ var FlVideoPlayer = {
         } catch(_){}
       }, { once: true });
       var parent = vid.parentElement;
-      var inDetail = !!vid.closest('#art-dlg-body, .m-art-body');
+      var inDetail = !!vid.closest('#art-dlg-body, #m-article-body');
       if (inDetail) {
         // In article detail: just add play icon overlay, don't wrap (grid handles sizing)
         if (parent && !parent.querySelector('.fl-play-icon')) {
