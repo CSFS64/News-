@@ -1039,6 +1039,7 @@ document.addEventListener('DOMContentLoaded', function () {
     App.renderFeed = function () {
       _origRenderFeed();
       setTimeout(Mobile._bindFeedCards, 50);
+      setTimeout(function(){ if (typeof FlVideoPlayer !== 'undefined') FlVideoPlayer.initAll(); }, 100);
     };
     // Also do initial bind
     setTimeout(Mobile._bindFeedCards, 500);
