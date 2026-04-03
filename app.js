@@ -601,6 +601,7 @@ var Article = {
       commentArea+
       '<div id="comment-tree">'+commentsHtml+'</div>'+
       '</div>';
+    setTimeout(function(){ FlVideoPlayer.initAll(); }, 50);
   },
 
   _renderCommentTree: function (comments, articleId) {
@@ -2182,17 +2183,29 @@ var FlVideoPlayer = {
           vid.poster = c.toDataURL('image/jpeg', 0.7);
         } catch(_){}
       }, { once: true });
-      // Wrap for play icon
       var parent = vid.parentElement;
-      if (parent && !parent.classList.contains('fl-vid-wrap')) {
-        var wrap = document.createElement('div');
-        wrap.className = 'fl-vid-wrap';
-        parent.insertBefore(wrap, vid);
-        wrap.appendChild(vid);
-        var icon = document.createElement('div');
-        icon.className = 'fl-play-icon';
-        icon.innerHTML = '&#9654;';
-        wrap.appendChild(icon);
+      var inDetail = !!vid.closest('#art-dlg-body, .m-art-body');
+      if (inDetail) {
+        // In article detail: just add play icon overlay, don't wrap (grid handles sizing)
+        if (parent && !parent.querySelector('.fl-play-icon')) {
+          parent.style.position = 'relative';
+          var icon = document.createElement('div');
+          icon.className = 'fl-play-icon';
+          icon.innerHTML = '&#9654;';
+          parent.appendChild(icon);
+        }
+      } else {
+        // In card list: wrap in fl-vid-wrap for fixed 120x120
+        if (parent && !parent.classList.contains('fl-vid-wrap')) {
+          var wrap = document.createElement('div');
+          wrap.className = 'fl-vid-wrap';
+          parent.insertBefore(wrap, vid);
+          wrap.appendChild(vid);
+          var icon2 = document.createElement('div');
+          icon2.className = 'fl-play-icon';
+          icon2.innerHTML = '&#9654;';
+          wrap.appendChild(icon2);
+        }
       }
       if (self._io) self._io.observe(vid);
     });
