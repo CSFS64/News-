@@ -346,7 +346,7 @@ var App = {
         return;
       }
       feedEl.innerHTML = arts.map(function(a,i){ return Render.card(a,i); }).join('');
-      FlVideoPlayer.initAll();
+      setTimeout(function(){ FlVideoPlayer.initAll(); }, 50);
     }).catch(function(e){
       console.error('[feed]',e);
       feedEl.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠</div><div class="empty-text">// LOAD ERROR</div></div>';
@@ -1942,44 +1942,26 @@ var ImageViewer = {
   },
 
   _render: function () {
-    var url = this._images[this._idx];
-    var isVideo = url.match(/\.(mp4|webm|mov)(\?|$)/i);
-    var old = document.getElementById('img-viewer-img');
-    if (isVideo) {
-      var vid = document.createElement('video');
-      vid.id = 'img-viewer-img';
-      vid.controls = true; vid.autoplay = true; vid.playsinline = true;
-      vid.style.cssText = 'max-width:92vw;max-height:82vh;outline:none;border-radius:4px;background:#000;';
-      vid.src = url;
-      var speedBar = document.getElementById('img-viewer-speed');
-      if (!speedBar) {
-        speedBar = document.createElement('div');
-        speedBar.id = 'img-viewer-speed';
-        speedBar.style.cssText = 'position:absolute;bottom:48px;left:50%;transform:translateX(-50%);z-index:2;display:flex;gap:6px;';
-        [0.5,1,1.5,2].forEach(function(s){
-          var btn = document.createElement('button');
-          btn.textContent = s + 'x';
-          btn.style.cssText = 'background:rgba(0,0,0,0.6);color:#fff;border:1px solid rgba(255,255,255,0.3);padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px;';
-          btn.onclick = function(){ vid.playbackRate = s; speedBar.querySelectorAll('button').forEach(function(b){b.style.borderColor='rgba(255,255,255,0.3)';}); btn.style.borderColor='#fff'; };
-          speedBar.appendChild(btn);
-        });
-        document.getElementById('img-viewer').appendChild(speedBar);
-      } else { speedBar.style.display = 'flex'; }
-      old.parentNode.replaceChild(vid, old);
-    } else {
-      var speedBar2 = document.getElementById('img-viewer-speed');
-      if (speedBar2) speedBar2.style.display = 'none';
-      if (old.tagName === 'VIDEO') old.pause();
-      var img = document.createElement('img');
-      img.id = 'img-viewer-img'; img.alt = '';
-      img.style.cssText = 'max-width:92vw;max-height:88vh;object-fit:contain;border-radius:4px;';
-      img.src = url;
-      old.parentNode.replaceChild(img, old);
-    }
-    this._scale = 1;
-    document.getElementById('img-viewer-counter').textContent = (this._idx + 1) + ' / ' + this._images.length;
-    document.getElementById('img-viewer-prev').style.display = this._images.length > 1 ? '' : 'none';
-    document.getElementById('img-viewer-next').style.display = this._images.length > 1 ? '' : 'none';
+     var isVideo = this._images[this._idx].match(/\.(mp4|webm|mov)(\?|$)/i);
+     var viewer = document.getElementById('img-viewer');
+     var old = document.getElementById('img-viewer-img');
+     if (isVideo) {
+       var vid = document.createElement('video');
+       vid.id = 'img-viewer-img'; vid.controls = true; vid.autoplay = true;
+       vid.style.cssText = old.style.cssText;
+       vid.src = this._images[this._idx];
+       old.parentNode.replaceChild(vid, old);
+     } else {
+       var img = document.createElement('img');
+       img.id = 'img-viewer-img'; img.alt = '';
+       img.style.cssText = old.style.cssText;
+       img.src = this._images[this._idx];
+       old.parentNode.replaceChild(img, old);
+     }
+     this._scale = 1;
+     document.getElementById('img-viewer-counter').textContent = (this._idx + 1) + ' / ' + this._images.length;
+     document.getElementById('img-viewer-prev').style.display = this._images.length > 1 ? '' : 'none';
+     document.getElementById('img-viewer-next').style.display = this._images.length > 1 ? '' : 'none';
   },
 
   prev: function () { this._idx = (this._idx - 1 + this._images.length) % this._images.length; this._render(); },
@@ -1995,9 +1977,9 @@ var ImageViewer = {
   }
 };
 
-// Global click handler for image grids
+// Global click handler for image/video grids
 document.addEventListener('click', function (e) {
-  var thumb = e.target.closest('.art-img-thumb');
+  var thumb = e.target.closest('.art-img-thumb, .fl-vid-wrap');
   if (!thumb) return;
   e.stopPropagation();
   e.preventDefault();
@@ -2005,76 +1987,221 @@ document.addEventListener('click', function (e) {
   if (!grid) return;
   var imgs;
   try { imgs = JSON.parse(grid.dataset.imgs || '[]'); } catch(_) { imgs = []; }
-  var idx = parseInt(thumb.dataset.idx) || 0;
-  if (imgs.length) ImageViewer.open(imgs, idx);
-}, true); // capture phase to intercept before card click
+  var idx = parseInt((thumb.dataset.idx !== undefined ? thumb : thumb.querySelector('[data-idx]') || thumb).dataset.idx) || 0;
+  if (!imgs.length) return;
+  var url = imgs[idx];
+  if (url && url.match(/\.(mp4|webm|mov)(\?|$)/i)) {
+    FlVideoPlayer.open(imgs, idx);
+  } else {
+    ImageViewer.open(imgs, idx);
+  }
+}, true);
 
-// Init
 /* ══════════════════════════════════════════════════════════
-   FL VIDEO PLAYER
+   FL VIDEO PLAYER — custom fullscreen player
    ══════════════════════════════════════════════════════════ */
 var FlVideoPlayer = {
-  _io: null, // IntersectionObserver
+  _images: [],
+  _idx: 0,
+  _io: null,
 
-  // Call after any feed render to init all uninitialized video thumbs
-  initAll: function () {
+  open: function (images, idx) {
+    this._images = images || [];
+    this._idx = idx || 0;
     var self = this;
-    document.querySelectorAll('video.art-img-thumb:not([data-fl-inited])').forEach(function (vid) {
-      vid.dataset.flInited = '1';
-      // Generate poster via canvas on first frame
-      vid.addEventListener('loadeddata', function () {
-        try {
-          var c = document.createElement('canvas');
-          c.width = vid.videoWidth || 120; c.height = vid.videoHeight || 120;
-          c.getContext('2d').drawImage(vid, 0, 0, c.width, c.height);
-          vid.poster = c.toDataURL('image/jpeg', 0.7);
-        } catch(_) {}
-      }, { once: true });
-      // Wrap in positioned div so play icon can overlay
-      var parent = vid.parentElement;
-      if (!parent || parent.classList.contains('fl-vid-wrap')) return;
-      var wrap = document.createElement('div');
-      wrap.className = 'fl-vid-wrap';
-      parent.insertBefore(wrap, vid);
-      wrap.appendChild(vid);
-      vid.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;cursor:pointer;';
-      var icon = document.createElement('div');
-      icon.className = 'fl-play-icon';
-      icon.innerHTML = '&#9654;';
-      wrap.appendChild(icon);
-      // IntersectionObserver auto-play
-      if (self._io) self._io.observe(vid);
-    });
+    var el = document.getElementById('fl-vp');
+    if (!el) { el = this._build(); document.body.appendChild(el); }
+    el.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    this._load();
   },
 
-  initObserver: function () {
+  _build: function () {
     var self = this;
-    if (self._io) return;
-    self._io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        var vid = entry.target;
+    var el = document.createElement('div');
+    el.id = 'fl-vp';
+    el.innerHTML = [
+      '<div id="fl-vp-overlay"></div>',
+      '<video id="fl-vp-video" playsinline></video>',
+      '<div id="fl-vp-ui">',
+      '  <div id="fl-vp-top">',
+      '    <span id="fl-vp-counter"></span>',
+      '    <button id="fl-vp-close">✕</button>',
+      '  </div>',
+      '  <div id="fl-vp-mid">',
+      '    <button id="fl-vp-prev">‹</button>',
+      '    <button id="fl-vp-playbtn">▶</button>',
+      '    <button id="fl-vp-next">›</button>',
+      '  </div>',
+      '  <div id="fl-vp-bot">',
+      '    <span id="fl-vp-time">0:00</span>',
+      '    <div id="fl-vp-prog-wrap"><div id="fl-vp-prog-buf"></div><div id="fl-vp-prog-bar"></div><div id="fl-vp-prog-thumb"></div></div>',
+      '    <span id="fl-vp-dur">0:00</span>',
+      '    <div id="fl-vp-vol-wrap"><span>🔊</span><input id="fl-vp-vol" type="range" min="0" max="1" step="0.05" value="1"></div>',
+      '    <div id="fl-vp-speed-wrap">',
+      '      <button class="fl-vp-spd active" data-s="1">1x</button>',
+      '      <button class="fl-vp-spd" data-s="1.5">1.5x</button>',
+      '      <button class="fl-vp-spd" data-s="2">2x</button>',
+      '    </div>',
+      '    <button id="fl-vp-fs">⛶</button>',
+      '  </div>',
+      '</div>'
+    ].join('');
+    document.body.appendChild(el);
+
+    var vid = el.querySelector('#fl-vp-video');
+    var prog = el.querySelector('#fl-vp-prog-wrap');
+    var bar  = el.querySelector('#fl-vp-prog-bar');
+    var buf  = el.querySelector('#fl-vp-prog-buf');
+    var thumb= el.querySelector('#fl-vp-prog-thumb');
+    var time = el.querySelector('#fl-vp-time');
+    var dur  = el.querySelector('#fl-vp-dur');
+    var play = el.querySelector('#fl-vp-playbtn');
+    var vol  = el.querySelector('#fl-vp-vol');
+
+    var fmt = function(s){ var m=Math.floor(s/60); return m+':'+(Math.floor(s%60)+'').padStart(2,'0'); };
+    var pct = function(e){ var r=prog.getBoundingClientRect(); return Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)); };
+
+    vid.addEventListener('timeupdate', function(){
+      var p = vid.duration ? vid.currentTime/vid.duration : 0;
+      bar.style.width = (p*100)+'%';
+      thumb.style.left = (p*100)+'%';
+      time.textContent = fmt(vid.currentTime);
+    });
+    vid.addEventListener('progress', function(){
+      if (vid.buffered.length) { buf.style.width = (vid.buffered.end(vid.buffered.length-1)/vid.duration*100)+'%'; }
+    });
+    vid.addEventListener('loadedmetadata', function(){ dur.textContent = fmt(vid.duration); });
+    vid.addEventListener('play', function(){ play.textContent = '⏸'; });
+    vid.addEventListener('pause', function(){ play.textContent = '▶'; });
+    vid.addEventListener('ended', function(){
+      play.textContent = '▶';
+      if (self._idx < self._images.length - 1) { self._idx++; self._load(); }
+    });
+
+    // Progress click/drag
+    var seeking = false;
+    prog.addEventListener('mousedown', function(e){ seeking=true; vid.currentTime=pct(e)*vid.duration; });
+    document.addEventListener('mousemove', function(e){ if(seeking && vid.duration) { vid.currentTime=pct(e)*vid.duration; } });
+    document.addEventListener('mouseup', function(){ seeking=false; });
+    // Touch scrub
+    prog.addEventListener('touchstart', function(e){ var t=e.touches[0]; vid.currentTime=pct(t)*vid.duration; }, {passive:true});
+    prog.addEventListener('touchmove', function(e){ var t=e.touches[0]; if(vid.duration) vid.currentTime=pct(t)*vid.duration; }, {passive:true});
+
+    play.addEventListener('click', function(){ vid.paused ? vid.play() : vid.pause(); });
+    vol.addEventListener('input', function(){ vid.volume=+vol.value; vid.muted=vid.volume===0; });
+    el.querySelector('#fl-vp-close').addEventListener('click', function(){ self.close(); });
+    el.querySelector('#fl-vp-overlay').addEventListener('click', function(){ self.close(); });
+    el.querySelector('#fl-vp-prev').addEventListener('click', function(){ if(self._idx>0){self._idx--;self._load();} });
+    el.querySelector('#fl-vp-next').addEventListener('click', function(){ if(self._idx<self._images.length-1){self._idx++;self._load();} });
+
+    // Speed
+    el.querySelectorAll('.fl-vp-spd').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        vid.playbackRate = +btn.dataset.s;
+        el.querySelectorAll('.fl-vp-spd').forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+      });
+    });
+
+    // Fullscreen
+    el.querySelector('#fl-vp-fs').addEventListener('click', function(){
+      if (!document.fullscreenElement) { el.requestFullscreen && el.requestFullscreen(); }
+      else { document.exitFullscreen && document.exitFullscreen(); }
+    });
+
+    // Keyboard
+    document.addEventListener('keydown', function(e){
+      if (!document.getElementById('fl-vp').classList.contains('active')) return;
+      if (e.key==='Escape') self.close();
+      if (e.key===' '){ e.preventDefault(); vid.paused?vid.play():vid.pause(); }
+      if (e.key==='ArrowLeft') vid.currentTime=Math.max(0,vid.currentTime-5);
+      if (e.key==='ArrowRight') vid.currentTime=Math.min(vid.duration||0,vid.currentTime+5);
+    });
+
+    // Tap to show/hide controls
+    var uiVisible = true, hideTimer;
+    var showUI = function(){ el.querySelector('#fl-vp-ui').style.opacity='1'; uiVisible=true; clearTimeout(hideTimer); hideTimer=setTimeout(function(){ if(!vid.paused){el.querySelector('#fl-vp-ui').style.opacity='0';uiVisible=false;} },3000); };
+    el.addEventListener('mousemove', showUI);
+    el.addEventListener('touchstart', function(){ uiVisible ? (el.querySelector('#fl-vp-ui').style.opacity='0', uiVisible=false) : showUI(); }, {passive:true});
+    showUI();
+
+    return el;
+  },
+
+  _load: function () {
+    var self = this;
+    var url = this._images[this._idx];
+    var vid = document.getElementById('fl-vp-video');
+    var counter = document.getElementById('fl-vp-counter');
+    var prev = document.getElementById('fl-vp-prev');
+    var next = document.getElementById('fl-vp-next');
+    if (!vid) return;
+    vid.src = url;
+    vid.load();
+    vid.play().catch(function(){});
+    if (counter) counter.textContent = (self._idx+1) + ' / ' + self._images.filter(function(u){ return u.match(/\.(mp4|webm|mov)(\?|$)/i); }).length;
+    if (prev) prev.style.display = self._idx > 0 ? '' : 'none';
+    if (next) next.style.display = self._idx < self._images.length-1 ? '' : 'none';
+  },
+
+  close: function () {
+    var el = document.getElementById('fl-vp');
+    if (!el) return;
+    el.classList.remove('active');
+    var vid = document.getElementById('fl-vp-video');
+    if (vid) { vid.pause(); vid.src = ''; }
+    document.body.style.overflow = '';
+    if (document.fullscreenElement) document.exitFullscreen().catch(function(){});
+  },
+
+  // Init auto-play-in-viewport for card thumbnails
+  initObserver: function () {
+    if (this._io) return;
+    var self = this;
+    this._io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        var vid = e.target;
         if (!vid.classList.contains('art-img-thumb')) return;
-        if (entry.isIntersecting) {
-          vid.muted = true; vid.play().catch(function(){});
-        } else {
-          vid.pause();
-        }
+        e.isIntersecting ? vid.play().catch(function(){}) : vid.pause();
       });
     }, { threshold: 0.5 });
   },
 
-  // Open full player in ImageViewer
-  openFull: function (src) {
-    ImageViewer.open([src], 0);
+  initAll: function () {
+    var self = this;
+    document.querySelectorAll('video.art-img-thumb:not([data-fl-inited])').forEach(function(vid){
+      vid.dataset.flInited = '1';
+      vid.muted = true;
+      // Poster from first frame
+      vid.addEventListener('loadeddata', function(){
+        try {
+          var c = document.createElement('canvas');
+          c.width = vid.videoWidth||120; c.height = vid.videoHeight||120;
+          c.getContext('2d').drawImage(vid, 0, 0, c.width, c.height);
+          vid.poster = c.toDataURL('image/jpeg', 0.7);
+        } catch(_){}
+      }, { once: true });
+      // Wrap for play icon
+      var parent = vid.parentElement;
+      if (parent && !parent.classList.contains('fl-vid-wrap')) {
+        var wrap = document.createElement('div');
+        wrap.className = 'fl-vid-wrap';
+        parent.insertBefore(wrap, vid);
+        wrap.appendChild(vid);
+        var icon = document.createElement('div');
+        icon.className = 'fl-play-icon';
+        icon.innerHTML = '&#9654;';
+        wrap.appendChild(icon);
+      }
+      if (self._io) self._io.observe(vid);
+    });
   }
 };
 
-document.addEventListener('DOMContentLoaded', function () {
-  FlVideoPlayer.initObserver();
-});
+document.addEventListener('DOMContentLoaded', function(){ FlVideoPlayer.initObserver(); });
 
-// Hook into feed renders to init videos
-
+// Init
 document.addEventListener('DOMContentLoaded', function () {
   setTimeout(function () { MobileNav.init(); }, 120);
   var hash = location.hash;
