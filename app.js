@@ -2191,7 +2191,7 @@ var FlVideoPlayer = {
           parent.style.position = 'relative';
           var icon = document.createElement('div');
           icon.className = 'fl-play-icon';
-          icon.innerHTML = '&#9654;';
+          icon.innerHTML = '';
           parent.appendChild(icon);
         }
       } else {
