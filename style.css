@@ -1924,11 +1924,38 @@ dialog::backdrop { background: transparent; }
   width: 36px; height: 36px;
   background: rgba(0,0,0,0.55); border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  color: #fff; font-size: 14px; text-indent: 2px;
   pointer-events: none; z-index: 2;
   transition: background 0.15s;
 }
+.fl-play-icon::after {
+  content: '';
+  display: block;
+  width: 0; height: 0;
+  border-style: solid;
+  border-width: 6px 0 6px 11px;
+  border-color: transparent transparent transparent #fff;
+  margin-left: 2px;
+}
 .fl-vid-wrap:hover .fl-play-icon { background: rgba(0,0,0,0.75); }
+.fl-vid-wrap .fl-play-icon::before {
+  content: '点击全屏播放';
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,0.75);
+  color: #fff; font-size: 11px;
+  white-space: nowrap; padding: 3px 8px;
+  border-radius: 4px;
+  opacity: 0; transition: opacity 0.15s;
+  pointer-events: none;
+  font-family: system-ui, sans-serif;
+}
+.fl-vid-wrap:hover .fl-play-icon::before {
+  opacity: 1;
+}
+@media (max-width: 700px) {
+  .fl-vid-wrap .fl-play-icon::before { display: none; }
+}
 
 /* Mobile: volume hidden, speed smaller */
 @media (max-width: 700px) {
