@@ -91,7 +91,9 @@ var ImageUpload = {
     if (ph) ph.style.display = store.files.length ? 'none' : '';
     grid.innerHTML = store.blobUrls.map(function (url, i) {
       return '<div class="img-preview-item">' +
-        '<img src="' + url + '" alt="">' +
+        (store.files[i].type.startsWith('video/')
+          ? '<video src="' + url + '" muted playsinline style="width:100%;height:100%;object-fit:cover"></video>'
+          : '<img src="' + url + '" alt="">') +
         '<button class="img-del" type="button" data-prefix="' + prefix + '" data-idx="' + i + '">✕</button>' +
         '</div>';
     }).join('');
@@ -143,7 +145,7 @@ var ImageUpload = {
     var self = this;
     var apiBase = (typeof API_BASE_URL !== 'undefined' ? API_BASE_URL : 'https://api.kalyna.homes');
     return Promise.all(store.files.map(function (f) {
-      return self._compress(f).then(function(blob) {
+      return (f.type.startsWith('video/') ? Promise.resolve(f) : self._compress(f)).then(function(blob) {
         var fd = new FormData();
         fd.append('file', blob, f.name || 'image.jpg');
         return fetch(apiBase + '/media/upload', {
@@ -449,7 +451,7 @@ var Render = {
       '<div class="card-tags">'+tags+authorHtml+'</div>'+
       '<div class="card-title">'+esc(a.title)+'</div>'+
       (a.desc?'<div class="card-desc">'+esc(a.desc)+'</div>':'')+
-      (a.images&&a.images.length?'<div class="art-img-grid art-img-grid--'+Math.min(a.images.length,9)+'" data-imgs="'+esc(JSON.stringify(a.images))+'">'+a.images.map(function(u,i){return '<img src="'+esc(u)+'" alt="" loading="lazy" data-idx="'+i+'" class="art-img-thumb">';}).join('')+'</div>':'')+
+      (a.images&&a.images.length?'<div class="art-img-grid art-img-grid--'+Math.min(a.images.length,9)+'" data-imgs="'+esc(JSON.stringify(a.images))+'">'+a.images.map(function(u,i){return u.match(/\.(mp4|webm|mov)(\?|$)/i) ? '<video src="'+esc(u)+'" class="art-img-thumb" muted playsinline preload="metadata" data-idx="'+i+'" style="object-fit:cover"></video>' : '<img src="'+esc(u)+'" alt="" loading="lazy" data-idx="'+i+'" class="art-img-thumb">';}).join('')+'</div>':'')+
       '<div class="card-actions">'+
       '<button class="act-btn'+(liked?' is-liked':'')+'" data-action="like" data-id="'+a.id+'">♥ <span>'+a.likes+'</span></button>'+
       '<button class="act-btn'+(saved?' is-saved':'')+'" data-action="save" data-id="'+a.id+'">◈ <span>'+(a.saves||0)+'</span></button>'+
@@ -586,7 +588,7 @@ var Article = {
       '</div>'+
       '<div class="art-title">'+esc(a.title)+'</div>'+
       (a.desc?'<div class="art-desc">'+esc(a.desc)+'</div>':'')+
-      (a.images&&a.images.length?'<div class="art-img-grid art-img-grid--'+Math.min(a.images.length,9)+'" data-imgs="'+esc(JSON.stringify(a.images))+'">'+a.images.map(function(u,i){return '<img src="'+esc(u)+'" alt="" loading="lazy" data-idx="'+i+'" class="art-img-thumb">';}).join('')+'</div>':'')+
+      (a.images&&a.images.length?'<div class="art-img-grid art-img-grid--'+Math.min(a.images.length,9)+'" data-imgs="'+esc(JSON.stringify(a.images))+'">'+a.images.map(function(u,i){return u.match(/\.(mp4|webm|mov)(\?|$)/i) ? '<video src="'+esc(u)+'" class="art-img-thumb" muted playsinline preload="metadata" data-idx="'+i+'" style="object-fit:cover"></video>' : '<img src="'+esc(u)+'" alt="" loading="lazy" data-idx="'+i+'" class="art-img-thumb">';}).join('')+'</div>':'')+
       '<div class="art-actions">'+
       '<a href="'+a.url+'" target="_blank" rel="noopener" class="btn-read">阅读原文 ↗</a>'+
       '<button class="act-btn'+(liked?' is-liked':'')+'" id="modal-like-'+a.id+'" onclick="Interactions.like(\''+a.id+'\',this)">♥ <span>'+a.likes+'</span> 点赞</button>'+
@@ -1939,26 +1941,38 @@ var ImageViewer = {
   },
 
   _render: function () {
-    var img = document.getElementById('img-viewer-img');
-    img.src = this._images[this._idx];
-    img.style.transform = 'translate(0,0) scale(1)';
-    img.style.transformOrigin = 'center';
-    this._scale = 1;
-    document.getElementById('img-viewer-counter').textContent = (this._idx + 1) + ' / ' + this._images.length;
-    document.getElementById('img-viewer-prev').style.display = this._images.length > 1 ? '' : 'none';
-    document.getElementById('img-viewer-next').style.display = this._images.length > 1 ? '' : 'none';
+     var isVideo = this._images[this._idx].match(/\.(mp4|webm|mov)(\?|$)/i);
+     var viewer = document.getElementById('img-viewer');
+     var old = document.getElementById('img-viewer-img');
+     if (isVideo) {
+       var vid = document.createElement('video');
+       vid.id = 'img-viewer-img'; vid.controls = true; vid.autoplay = true;
+       vid.style.cssText = old.style.cssText;
+       vid.src = this._images[this._idx];
+       old.parentNode.replaceChild(vid, old);
+     } else {
+       var img = document.createElement('img');
+       img.id = 'img-viewer-img'; img.alt = '';
+       img.style.cssText = old.style.cssText;
+       img.src = this._images[this._idx];
+       old.parentNode.replaceChild(img, old);
+     }
+     this._scale = 1;
+     document.getElementById('img-viewer-counter').textContent = (this._idx + 1) + ' / ' + this._images.length;
+     document.getElementById('img-viewer-prev').style.display = this._images.length > 1 ? '' : 'none';
+     document.getElementById('img-viewer-next').style.display = this._images.length > 1 ? '' : 'none';
   },
 
   prev: function () { this._idx = (this._idx - 1 + this._images.length) % this._images.length; this._render(); },
   next: function () { this._idx = (this._idx + 1) % this._images.length; this._render(); },
   close: function () {
-    var el = document.getElementById('img-viewer');
-    if (el) {
-      el.classList.remove('active');
-      var img = document.getElementById('img-viewer-img');
-      if (img) img.style.transform = 'scale(1)';
-      this._scale = 1;
-    }
+     var el = document.getElementById('img-viewer');
+     if (el) {
+       el.classList.remove('active');
+       var media = document.getElementById('img-viewer-img');
+       if (media && media.tagName === 'VIDEO') media.pause();
+       this._scale = 1;
+     }
   }
 };
 
