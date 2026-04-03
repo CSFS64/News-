@@ -789,6 +789,9 @@ var Mobile = {
     // Bind comment likes & reply buttons
     Mobile._bindCommentActions(body, a.id);
 
+    // Init video players
+    setTimeout(function(){ if (typeof FlVideoPlayer !== 'undefined') FlVideoPlayer.initAll(); }, 50);
+
     // Fade in content
     requestAnimationFrame(function () {
       body.style.transition = 'opacity 0.22s ease';
