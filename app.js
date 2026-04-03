@@ -346,6 +346,7 @@ var App = {
         return;
       }
       feedEl.innerHTML = arts.map(function(a,i){ return Render.card(a,i); }).join('');
+      FlVideoPlayer.initAll();
     }).catch(function(e){
       console.error('[feed]',e);
       feedEl.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠</div><div class="empty-text">// LOAD ERROR</div></div>';
@@ -1941,26 +1942,44 @@ var ImageViewer = {
   },
 
   _render: function () {
-     var isVideo = this._images[this._idx].match(/\.(mp4|webm|mov)(\?|$)/i);
-     var viewer = document.getElementById('img-viewer');
-     var old = document.getElementById('img-viewer-img');
-     if (isVideo) {
-       var vid = document.createElement('video');
-       vid.id = 'img-viewer-img'; vid.controls = true; vid.autoplay = true;
-       vid.style.cssText = old.style.cssText;
-       vid.src = this._images[this._idx];
-       old.parentNode.replaceChild(vid, old);
-     } else {
-       var img = document.createElement('img');
-       img.id = 'img-viewer-img'; img.alt = '';
-       img.style.cssText = old.style.cssText;
-       img.src = this._images[this._idx];
-       old.parentNode.replaceChild(img, old);
-     }
-     this._scale = 1;
-     document.getElementById('img-viewer-counter').textContent = (this._idx + 1) + ' / ' + this._images.length;
-     document.getElementById('img-viewer-prev').style.display = this._images.length > 1 ? '' : 'none';
-     document.getElementById('img-viewer-next').style.display = this._images.length > 1 ? '' : 'none';
+    var url = this._images[this._idx];
+    var isVideo = url.match(/\.(mp4|webm|mov)(\?|$)/i);
+    var old = document.getElementById('img-viewer-img');
+    if (isVideo) {
+      var vid = document.createElement('video');
+      vid.id = 'img-viewer-img';
+      vid.controls = true; vid.autoplay = true; vid.playsinline = true;
+      vid.style.cssText = 'max-width:92vw;max-height:82vh;outline:none;border-radius:4px;background:#000;';
+      vid.src = url;
+      var speedBar = document.getElementById('img-viewer-speed');
+      if (!speedBar) {
+        speedBar = document.createElement('div');
+        speedBar.id = 'img-viewer-speed';
+        speedBar.style.cssText = 'position:absolute;bottom:48px;left:50%;transform:translateX(-50%);z-index:2;display:flex;gap:6px;';
+        [0.5,1,1.5,2].forEach(function(s){
+          var btn = document.createElement('button');
+          btn.textContent = s + 'x';
+          btn.style.cssText = 'background:rgba(0,0,0,0.6);color:#fff;border:1px solid rgba(255,255,255,0.3);padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px;';
+          btn.onclick = function(){ vid.playbackRate = s; speedBar.querySelectorAll('button').forEach(function(b){b.style.borderColor='rgba(255,255,255,0.3)';}); btn.style.borderColor='#fff'; };
+          speedBar.appendChild(btn);
+        });
+        document.getElementById('img-viewer').appendChild(speedBar);
+      } else { speedBar.style.display = 'flex'; }
+      old.parentNode.replaceChild(vid, old);
+    } else {
+      var speedBar2 = document.getElementById('img-viewer-speed');
+      if (speedBar2) speedBar2.style.display = 'none';
+      if (old.tagName === 'VIDEO') old.pause();
+      var img = document.createElement('img');
+      img.id = 'img-viewer-img'; img.alt = '';
+      img.style.cssText = 'max-width:92vw;max-height:88vh;object-fit:contain;border-radius:4px;';
+      img.src = url;
+      old.parentNode.replaceChild(img, old);
+    }
+    this._scale = 1;
+    document.getElementById('img-viewer-counter').textContent = (this._idx + 1) + ' / ' + this._images.length;
+    document.getElementById('img-viewer-prev').style.display = this._images.length > 1 ? '' : 'none';
+    document.getElementById('img-viewer-next').style.display = this._images.length > 1 ? '' : 'none';
   },
 
   prev: function () { this._idx = (this._idx - 1 + this._images.length) % this._images.length; this._render(); },
@@ -1991,6 +2010,71 @@ document.addEventListener('click', function (e) {
 }, true); // capture phase to intercept before card click
 
 // Init
+/* ══════════════════════════════════════════════════════════
+   FL VIDEO PLAYER
+   ══════════════════════════════════════════════════════════ */
+var FlVideoPlayer = {
+  _io: null, // IntersectionObserver
+
+  // Call after any feed render to init all uninitialized video thumbs
+  initAll: function () {
+    var self = this;
+    document.querySelectorAll('video.art-img-thumb:not([data-fl-inited])').forEach(function (vid) {
+      vid.dataset.flInited = '1';
+      // Generate poster via canvas on first frame
+      vid.addEventListener('loadeddata', function () {
+        try {
+          var c = document.createElement('canvas');
+          c.width = vid.videoWidth || 120; c.height = vid.videoHeight || 120;
+          c.getContext('2d').drawImage(vid, 0, 0, c.width, c.height);
+          vid.poster = c.toDataURL('image/jpeg', 0.7);
+        } catch(_) {}
+      }, { once: true });
+      // Wrap in positioned div so play icon can overlay
+      var parent = vid.parentElement;
+      if (!parent || parent.classList.contains('fl-vid-wrap')) return;
+      var wrap = document.createElement('div');
+      wrap.className = 'fl-vid-wrap';
+      parent.insertBefore(wrap, vid);
+      wrap.appendChild(vid);
+      vid.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;cursor:pointer;';
+      var icon = document.createElement('div');
+      icon.className = 'fl-play-icon';
+      icon.innerHTML = '&#9654;';
+      wrap.appendChild(icon);
+      // IntersectionObserver auto-play
+      if (self._io) self._io.observe(vid);
+    });
+  },
+
+  initObserver: function () {
+    var self = this;
+    if (self._io) return;
+    self._io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        var vid = entry.target;
+        if (!vid.classList.contains('art-img-thumb')) return;
+        if (entry.isIntersecting) {
+          vid.muted = true; vid.play().catch(function(){});
+        } else {
+          vid.pause();
+        }
+      });
+    }, { threshold: 0.5 });
+  },
+
+  // Open full player in ImageViewer
+  openFull: function (src) {
+    ImageViewer.open([src], 0);
+  }
+};
+
+document.addEventListener('DOMContentLoaded', function () {
+  FlVideoPlayer.initObserver();
+});
+
+// Hook into feed renders to init videos
+
 document.addEventListener('DOMContentLoaded', function () {
   setTimeout(function () { MobileNav.init(); }, 120);
   var hash = location.hash;
